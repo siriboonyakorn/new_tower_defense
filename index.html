@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Defense Grid</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/ui.css">
+    <link rel="stylesheet" href="css/entities.css">
+    <link rel="stylesheet" href="css/effects.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="top-bar">
+                <div class="stat">CREDITS: <span id="credits">500</span></div>
+                <div class="stat">WAVE: <span id="wave">1</span></div>
+                <div class="stat">HP: <span id="hp">100</span></div>
+            </div>
+            <div id="build-menu"></div>
+        </div>
+
+        <div id="cover-screen" class="screen active-screen">
+            <h1 class="game-title">NEON DEFENSE</h1>
+            <div class="subtitle">TACTICAL GRID SYSTEM</div>
+            <button id="launch-btn" class="neon-btn">LAUNCH GAME</button>
+        </div>
+
+        <div id="menu-screen" class="screen hidden-screen">
+            <h2 class="menu-title">MAIN MENU</h2>
+            <div class="menu-options">
+                <button class="menu-btn">CAMPAIGN</button>
+                <button class="menu-btn">SETTINGS</button>
+            </div>
+        </div>
+
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

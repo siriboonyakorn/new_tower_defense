@@ -1,22 +1,44 @@
+/* css/main.css */
+:root {
+    --neon-blue: #00f3ff;
+    --neon-pink: #ff00ff;
+    --bg-color: #050505;
+    --glass-bg: rgba(10, 20, 30, 0.8);
+}
+
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
-    user-select: none;
 }
 
 body {
-    margin: 0;
-    overflow: hidden;
-    background-color: #050505;
-    font-family: 'Courier New', Courier, monospace;
+    background-color: var(--bg-color);
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden; /* Prevents scrollbars */
+    color: white;
 }
 
-#game-container {
-    position: relative;
+#game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100vw;
     height: 100vh;
+    z-index: 0;
 }
 
-canvas {
-    display: block;
-    background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through to canvas if no UI is present */
+}
+
+/* Helper Class */
+.hidden {
+    display: none !important;
 }

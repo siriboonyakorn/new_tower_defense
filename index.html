@@ -2,41 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="data:,">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Defense Grid</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Sector Zero</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/ui.css">
-    <link rel="stylesheet" href="css/entities.css">
-    <link rel="stylesheet" href="css/effects.css">
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        
-        <div id="ui-layer">
-            <div id="top-bar">
-                <div class="stat">CREDITS: <span id="credits">500</span></div>
-                <div class="stat">WAVE: <span id="wave">1</span></div>
-                <div class="stat">HP: <span id="hp">100</span></div>
-            </div>
-            <div id="build-menu"></div>
-        </div>
 
-        <div id="cover-screen" class="screen active-screen">
-            <h1 class="game-title">NEON DEFENSE</h1>
-            <div class="subtitle">TACTICAL GRID SYSTEM</div>
-            <button id="launch-btn" class="neon-btn">LAUNCH GAME</button>
-        </div>
+    <canvas id="game-canvas"></canvas>
 
-        <div id="menu-screen" class="screen hidden-screen">
-            <h2 class="menu-title">MAIN MENU</h2>
-            <div class="menu-options">
-                <button class="menu-btn">CAMPAIGN</button>
-                <button class="menu-btn">SETTINGS</button>
-            </div>
-        </div>
-
+    <div id="boot-screen">
+    <div class="boot-prompt">
+        <div class="glitch-text">SECTOR_ZERO_OS</div>
+        <button id="btn-initialize">INITIALIZE SYSTEM</button>
     </div>
+</div>
+    <div id="ui-layer">
+        
+        <div id="main-menu" class="menu-screen">
+            <div class="menu-content">
+                <h1 class="game-title">SECTOR <span class="highlight">ZERO</span></h1>
+                
+                <div class="menu-list">
+                    <button id="btn-start" class="menu-item">
+                        <span class="icon">►</span> START OPERATION
+                    </button>
+                    
+                    <button id="btn-shop" class="menu-item">
+                        <span class="icon">▤</span> SHOP
+                    </button>
+                    
+                    <button id="btn-surge" class="menu-item locked">
+                        <span class="icon">✖</span> SURGE SUPPORT
+                        <span class="tiny-tag">COMING SOON</span>
+                    </button>
+                    
+                    <button id="btn-logs" class="menu-item">
+                        <span class="icon">≡</span> UPDATE LOGS
+                    </button>
+                    
+                    <button id="btn-settings" class="menu-item">
+                        <span class="icon">☼</span> SETTINGS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="logs-overlay" class="sub-menu hidden">
+        <div class="logs-window">
+            <div class="logs-header">
+                <span>SYSTEM_LOG_v1.0.0</span>
+                <button id="close-logs" class="close-btn">CLOSE [ESC / X]</button>
+            </div>
+            <div class="logs-content">
+                <div class="log-entry">
+                    <span class="log-date">[2025.12.27]</span>
+                    <h3 class="log-title">VERSION 1.0 - INITIAL ALPHA RELEASE</h3>
+                    <p>> System boot-up sequence initiated.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-overlay" class="sub-menu hidden">
+        <div class="settings-window">
+            <div class="settings-header">
+                <span>SYSTEM_CONFIGURATION</span>
+                <button id="close-settings" class="close-btn">CLOSE [ESC / X]</button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-row">
+                    <label>MASTER VOLUME</label>
+                    <input type="range" id="volume-slider" min="0" max="100" value="80">
+                </div>
+                </div>
+        </div>
+    </div>
+    </div>
+    
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

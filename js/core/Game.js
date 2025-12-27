@@ -6,7 +6,7 @@ import { MathUtils } from '../utils/MathUtils.js';
 
 export class Game {
     constructor() {
-        this.canvas = document.getElementById('gameCanvas');
+        this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.width = window.innerWidth;
         this.height = window.innerHeight;

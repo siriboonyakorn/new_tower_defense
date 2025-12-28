@@ -2,37 +2,93 @@
 
 export class AudioManager {
     constructor() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.volume = 0.3; // Default volume
-        this.init();
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioContext = new AudioContext();
+        
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.connect(this.audioContext.destination);
+        this.volume = 0.5;
+        this.buffer = null;
+
+        // FIX: Store the "loading" process in a variable we can wait for later
+        this.musicReady = this.loadMusic(); 
     }
 
-    async init() {
-        // Resume context if suspended (Browser policy)
-        if (this.audioContext.state === 'suspended') {
-            try {
-                await this.audioContext.resume();
-            } catch (e) {
-                console.warn("Audio Context Resume failed", e);
-            }
+    // ... keep resumeContext() ...
+
+    async loadMusic() {
+        try {
+            const response = await fetch('assets/audio/music.mp3');
+            const arrayBuffer = await response.arrayBuffer();
+            this.buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            console.log("Music Ready!");
+        } catch (e) {
+            console.error("Music failed to load, but game will continue:", e);
         }
     }
+
+    async resumeContext() {
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+    }
+
+   async loadMusic() {
+    try {
+        const response = await fetch('assets/audio/music.mp3');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const arrayBuffer = await response.arrayBuffer();
+        
+        // This is the critical line: we wait for the decoding to finish
+        this.buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        
+        console.log("✅ Music decoded and buffer filled.");
+    } catch (e) {
+        console.error("❌ Failed to load music:", e);
+    }
+}   
 
     playMusic() {
-        // Placeholder for music logic
-        // Only run if you actually have a file loaded
-        console.log("Music playing...");
+    console.log("Attempting to play music...");
+    
+    if (!this.buffer) {
+        console.error("Cannot play: Buffer is empty!");
+        return;
+    }
+    
+    // 1. If music is already playing, stop it first
+    if (this.source) {
+        try { this.source.stop(); } catch(e) {}
     }
 
-    setVolume(val) {
-        this.volume = val / 100;
+    // 2. Create the source
+    this.source = this.audioContext.createBufferSource();
+    this.source.buffer = this.buffer;
+    this.source.loop = true;
+
+    // 3. Connect to the gain node (Volume Control)
+    this.source.connect(this.gainNode);
+    
+    // 4. Connect gain node to speakers
+    this.gainNode.connect(this.audioContext.destination);
+
+    // 5. Set volume explicitly just in case
+    this.gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
+
+    // 6. START
+    this.source.start(0);
+    console.log("Music source started at volume:", this.volume);
     }
 
-    // --- THIS WAS LIKELY THE CAUSE OF THE CRASH ---
+    setVolume(value) {
+        this.volume = value / 100;
+        this.gainNode.gain.setTargetAtTime(this.volume, this.audioContext.currentTime, 0.1);
+    }
+
+    // --- RESTORING YOUR ORIGINAL SHARP SFX ---
     playUI(type) {
-        if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
-        }
+        if (this.audioContext.state === 'suspended') return;
 
         const osc = this.audioContext.createOscillator();
         const gainNode = this.audioContext.createGain();
@@ -42,35 +98,24 @@ export class AudioManager {
 
         const now = this.audioContext.currentTime;
 
-        // Different sounds for different actions
         if (type === 'hover') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
-            gainNode.gain.setValueAtTime(this.volume * 0.5, now);
+            // Your original high-tech digital chirp
+            osc.type = 'square'; 
+            osc.frequency.setValueAtTime(880, now); // High pitch (A5)
+            
+            gainNode.gain.setValueAtTime(this.volume * 0.1, now);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            osc.start(now);
+
+            osc.start();
             osc.stop(now + 0.1);
         } 
-        else if (type === 'tower_place') {
-            // Heavy mechanical thud
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(200, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-            gainNode.gain.setValueAtTime(this.volume, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-            osc.start(now);
-            osc.stop(now + 0.3);
-        }
-        else if (type === 'shoot') {
-            // Laser pew
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
-            gainNode.gain.setValueAtTime(this.volume * 0.3, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            osc.start(now);
-            osc.stop(now + 0.2);
+        else if (type === 'click') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, now);
+            gainNode.gain.setValueAtTime(this.volume * 0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start();
+            osc.stop(now + 0.05);
         }
     }
 }

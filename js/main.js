@@ -1,45 +1,46 @@
+// js/main.js
 import { Navigation } from './ui/Navigation.js';
 import { SpaceScene } from './scenes/SpaceScene.js';
 import { AudioManager } from './core/AudioManager.js';
-import { Game } from './core/Game.js'; // <--- 1. Import the Game Class
+import { Game } from './core/Game.js';
+
+let menuBackground = null; 
 
 window.onload = () => {
     window.audioManager = new AudioManager();
     const nav = new Navigation();
-    
-    // Elements
-    const bootScreen = document.getElementById('boot-screen');
     const initBtn = document.getElementById('btn-initialize');
-    const startBtn = document.getElementById('btn-start'); // <--- 2. Get the Start Button
+    const bootScreen = document.getElementById('boot-screen');
+    const mainMenu = document.getElementById('main-menu');
 
-    // --- BOOT SEQUENCE (Existing Code) ---
-    initBtn.onclick = () => {
-        if (window.audioManager) window.audioManager.playMusic();
-        
-        bootScreen.classList.add('fade-out');
-        const mainMenu = document.getElementById('main-menu');
-        mainMenu.classList.add('active');
-        
-        // Start the starfield background
-        window.menuBackground = new SpaceScene('game-canvas');
-        window.menuBackground.start();
-    };
+    if (initBtn) {
+        initBtn.onclick = async () => {
+            // 1. Give feedback if you clicked really fast
+            const originalText = initBtn.innerText;
+            initBtn.innerText = "SYNCING DATA...";
+            initBtn.style.opacity = "0.5";
 
-    // --- START GAME SEQUENCE (New Code) ---
-    startBtn.onclick = () => {
-        // 1. Hide the Main Menu
-        const mainMenu = document.getElementById('main-menu');
-        mainMenu.classList.remove('active');
-        mainMenu.classList.add('hidden');
+            try {
+                // 2. THIS IS THE FIX: Wait for the music download to finish!
+                await window.audioManager.musicReady;
+                
+                // 3. Now it's safe to start
+                await window.audioManager.resumeContext(); 
+                window.audioManager.playMusic();
+            } catch (err) {
+                console.error("Audio glitch:", err);
+            }
 
-        // 2. Stop the Menu Background (saves performance)
-        if (window.menuBackground) {
-            window.menuBackground.stop();
-        }
-
-        // 3. Initialize and Start the Game
-        console.log("Starting Game...");
-        const game = new Game();
-        game.start();
-    };
+            // 4. Visuals (Reset button just in case)
+            initBtn.innerText = originalText;
+            
+            if (bootScreen) bootScreen.classList.add('fade-out');
+            if (mainMenu) mainMenu.classList.add('active');
+            
+            if (menuBackground === null) {
+                menuBackground = new SpaceScene('game-canvas');
+                menuBackground.start();
+            }
+        };
+    }
 };

@@ -14,11 +14,12 @@
     <canvas id="game-canvas"></canvas>
 
     <div id="boot-screen">
-    <div class="boot-prompt">
-        <div class="glitch-text">SECTOR_ZERO_OS</div>
-        <button id="btn-initialize">INITIALIZE SYSTEM</button>
+        <div class="boot-prompt">
+            <div class="glitch-text">SECTOR_ZERO_OS</div>
+            <button id="btn-initialize">LAUNCH GAME</button>
+        </div>
     </div>
-</div>
+
     <div id="ui-layer">
         
         <div id="main-menu" class="menu-screen">
@@ -51,37 +52,75 @@
         </div>
 
         <div id="logs-overlay" class="sub-menu hidden">
-        <div class="logs-window">
-            <div class="logs-header">
-                <span>SYSTEM_LOG_v1.0.0</span>
-                <button id="close-logs" class="close-btn">CLOSE [ESC / X]</button>
-            </div>
-            <div class="logs-content">
-                <div class="log-entry">
-                    <span class="log-date">[2025.12.27]</span>
-                    <h3 class="log-title">VERSION 1.0 - INITIAL ALPHA RELEASE</h3>
-                    <p>> System boot-up sequence initiated.</p>
+            <div class="logs-window">
+                <div class="logs-header">
+                    <span>SYSTEM_LOG_v1.0.0</span>
+                    <button id="close-logs" class="close-btn">CLOSE [ESC / X]</button>
+                </div>
+                <div class="logs-content">
+                    <div class="log-entry">
+                        <span class="log-date">[2025.12.27]</span>
+                        <h3 class="log-title">VERSION 1.0 - INITIAL ALPHA RELEASE</h3>
+                        <p>> System boot-up sequence initiated.</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="settings-overlay" class="sub-menu hidden">
-        <div class="settings-window">
-            <div class="settings-header">
-                <span>SYSTEM_CONFIGURATION</span>
-                <button id="close-settings" class="close-btn">CLOSE [ESC / X]</button>
+        <div id="settings-overlay" class="sub-menu hidden">
+            <div class="settings-window">
+                <div class="settings-header">
+                    <span>SYSTEM_CONFIGURATION</span>
+                    <button id="close-settings" class="close-btn">CLOSE [ESC / X]</button>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-row">
+                        <label>MASTER VOLUME</label>
+                        <input type="range" id="volume-slider" min="0" max="100" value="80">
+                    </div>
+                </div>
             </div>
-            <div class="settings-content">
-                <div class="setting-row">
-                    <label>MASTER VOLUME</label>
-                    <input type="range" id="volume-slider" min="0" max="100" value="80">
-                </div>
-                </div>
         </div>
-    </div>
-    </div>
-    
-    <script type="module" src="js/main.js"></script>
+
+        <div id="deployment-overlay" class="sub-menu hidden">
+            <div class="deployment-window">
+                <div class="window-header">
+                    <span>SELECT DEPLOYMENT SITE</span>
+                    <button id="close-deployment" class="close-btn">CANCEL [ESC]</button>
+                </div>
+                
+                <div class="deployment-content">
+                    <div class="map-selection-panel">
+                        <h3 class="panel-title">AVAILABLE SECTORS</h3>
+                        <div id="map-list" class="map-list"></div>
+                    </div>
+
+                    <div class="mission-briefing-panel">
+                        <h3 class="panel-title">MISSION BRIEFING</h3>
+                        
+                        <div id="selected-map-details" class="briefing-content hidden">
+                            <div class="briefing-header">
+                                <h2 id="briefing-title">SECTOR NAME</h2>
+                                <div class="briefing-stats">
+                                    <span class="stat-badge easy" id="briefing-difficulty">EASY</span>
+                                    <span class="stat-badge multiplier" id="briefing-multiplier">x1.00 REWARD</span>
+                                </div>
+                            </div>
+                            <p id="briefing-text" class="briefing-text">Select a sector to view details.</p>
+                            
+                            <button id="btn-deploy" class="deploy-btn" disabled>
+                                CONFIRM DEPLOYMENT
+                            </button>
+                        </div>
+
+                        <div id="no-selection-placeholder" class="briefing-content">
+                            <p class="placeholder-text">&lt; AWAITING SECTOR SELECTION &gt;</p>
+                        </div> 
+                    </div> 
+                </div> 
+            </div>
+        </div>
+
+    </div> <script type="module" src="js/main.js"></script>
 </body>
 </html>

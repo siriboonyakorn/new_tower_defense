@@ -17,6 +17,12 @@
     background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 60%);
     position: relative;
     z-index: 10;
+    background: rgba(0, 0, 0, 0.3); /* Transparent black */
+    background: linear-gradient(90deg, rgba(5, 7, 13, 0.8) 0%, rgba(0, 0, 0, 0) 100%) !important;
+    backdrop-filter: blur(4px); /* Keep the blur, it looks high-quality */ /* Faint neon edge */
+    
+    /* This makes the menu feel like a glass panel */
+    box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
 }
 
 .game-title {
@@ -273,3 +279,288 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 .menu-screen.active .game-title {
     animation: title-flicker 0.4s ease-out 0.6s;
 }
+
+#game-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1; /* Keep it at the very bottom */
+    display: block;
+    background-color: #000; /* This is your fallback if JS fails */
+}
+
+/* FORCE TRANSPARENCY ON ALL WRAPPERS */
+#ui-layer, .menu-content {
+    background: transparent !important;
+    pointer-events: auto
+}
+
+/* Make sure the menu screen isn't a solid wall */
+.menu-screen {
+    background: linear-gradient(90deg, rgba(0,0,0,0.7) 0%, transparent 100%) !important;
+    backdrop-filter: none !important; /* Temporarily remove blur to see if stars appear */
+}
+
+/* css/ui.css - Add these new styles */
+
+/* --- DEPLOYMENT WINDOW --- */
+.deployment-window {
+    width: 760px; /* Reduced from 900px */
+    height: 500px; /* Reduced from 600px */
+    background: rgba(10, 12, 18, 0.95);
+    border: 2px solid var(--neon-blue);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+}
+
+.window-header {
+    background: rgba(0, 243, 255, 0.1);
+    color: var(--neon-blue);
+    padding: 15px 20px;
+    font-weight: 900;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    border-bottom: 1px solid var(--neon-blue);
+}
+
+.deployment-content {
+    flex: 1;
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+    overflow: hidden;
+}
+
+.panel-title {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+}
+
+/* --- LEFT PANEL: MAP LIST --- */
+.map-selection-panel {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.map-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-right: 10px;
+}
+
+/* Individual Map Card Style */
+.map-card {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.map-card:hover {
+    background: rgba(0, 243, 255, 0.1);
+    border-color: var(--neon-blue);
+}
+
+.map-card.selected {
+    background: rgba(0, 243, 255, 0.15);
+    border: 2px solid var(--neon-blue);
+    box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.2);
+}
+
+.map-preview-image {
+    width: 110px;
+    height: 80px;
+    object-fit: cover;
+    border-right: 1px solid rgba(0, 243, 255, 0.2);
+    background: #000; /* Placeholder color */
+}
+
+.map-info {
+    padding: 15px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.map-name {
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.map-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+/* --- RIGHT PANEL: BRIEFING --- */
+.mission-briefing-panel {
+    flex: 3;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.briefing-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.briefing-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+    padding-bottom: 15px;
+}
+
+#briefing-title {
+    color: var(--neon-blue);
+    font-size: 1.5rem; /* Smaller title */
+    margin: 0 0 5px 0;
+}
+
+.briefing-stats {
+    display: flex;
+    gap: 10px;
+}
+
+.stat-badge {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.stat-badge.easy { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+.stat-badge.multiplier { background: rgba(255, 159, 67, 0.2); color: #ff9f43; border: 1px solid #ff9f43; }
+
+.briefing-text {
+    color: #ccc;
+    line-height: 1.4;
+    flex: 1;
+    font-size: 0.85rem; /* Compact text */
+    font-family: monospace;
+}
+
+.deploy-btn {
+    background: var(--neon-blue);
+    color: #000;
+    border: none;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+    pointer-events: none;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+}
+
+/* Enable the button when it's not disabled */
+.deploy-btn:not(:disabled) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.deploy-btn:not(:disabled):hover {
+    background: white;
+    box-shadow: 0 0 50px rgba(0, 243, 255, 0.6);
+}
+
+.placeholder-text {
+    color: #555;
+    text-align: center;
+    margin-top: 50%;
+    transform: translateY(-50%);
+    font-family: monospace;
+    letter-spacing: 2px;
+}
+
+/* css/ui.css */
+
+/* This replaces the img tag when no image is found */
+.map-card-placeholder {
+    width: 140px;
+    height: 100px;
+    background: #1a1d23;
+    border-right: 1px solid rgba(0, 243, 255, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #444;
+    font-weight: bold;
+    font-size: 0.7rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add a little "scanning" effect to make the empty box look techy */
+.map-card-placeholder::after {
+    content: 'NO_DATA';
+    position: absolute;
+    bottom: 5px;
+    font-size: 0.5rem;
+    color: #333;
+}
+
+/* Ensure overlays always sit on top of the main sidebar */
+.sub-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* CRITICAL: Must be higher than .menu-screen's z-index (10) */
+    z-index: 5000 !important; 
+    
+    /* Ensure it responds to clicks */
+    pointer-events: auto !important;
+}
+
+/* Ensure the main menu doesn't steal the "focus" */
+.menu-screen {
+    z-index: 10;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allows canvas interaction */
+    z-index: 100;
+}
+/* If this makes the menu appear immediately on refresh, 
+   then our JavaScript logic is the problem. */

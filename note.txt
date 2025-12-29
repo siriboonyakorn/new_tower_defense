@@ -1,0 +1,35 @@
+drawPath() {
+    if (this.path.length < 2) return;
+
+    const ctx = this.ctx;
+    const ts = this.tileSize;
+
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255, 68, 68, 0.5)'; 
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 10]); 
+
+    const startX = this.path[0].x * ts + ts / 2;
+    const startY = this.path[0].y * ts + ts / 2;
+    ctx.moveTo(startX, startY);
+
+    for (let i = 1; i < this.path.length; i++) {
+        const px = this.path[i].x * ts + ts / 2;
+        const py = this.path[i].y * ts + ts / 2;
+        ctx.lineTo(px, py);
+    }
+
+    ctx.stroke();
+    ctx.setLineDash([]); 
+
+    ctx.fillStyle = '#ff4444';
+    const endNode = this.path[this.path.length - 1];
+    ctx.beginPath();
+    ctx.arc(endNode.x * ts + ts / 2, endNode.y * ts + ts / 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#00ff00';
+    ctx.beginPath();
+    ctx.arc(startX, startY, 8, 0, Math.PI * 2);
+    ctx.fill();
+}

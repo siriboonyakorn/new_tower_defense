@@ -121,6 +121,40 @@
             </div>
         </div>
 
+
+        <div id="game-hud" class="hidden">
+        
+            <div class="resource-bar">
+                <div class="res-item">CREDITS: <span id="res-credits">500</span></div>
+                <div class="res-item">LIVES: <span id="res-lives">20</span></div>
+                <div class="res-item">WAVE: <span id="res-wave">1</span></div>
+            </div>
+
+            <div class="side-panel">
+                <div id="build-menu">
+                    <h3 class="panel-header">CONSTRUCTION</h3>
+                    <div class="tower-grid">
+                        </div>
+                </div>
+
+                <div id="inspect-menu" class="hidden">
+                    <h3 class="panel-header" id="inspect-name">TOWER NAME</h3>
+                    <div class="inspect-stats" id="inspect-stats">
+                        </div>
+                    
+                    <div class="action-buttons">
+                        <button id="btn-upgrade" class="hud-btn upgrade">
+                            UPGRADE (<span id="upgrade-cost">150</span>)
+                        </button>
+                        <button id="btn-sell" class="hud-btn sell">
+                            SELL (<span id="sell-value">50</span>)
+                        </button>
+                        <button id="btn-deselect" class="hud-btn">BACK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div> <script type="module" src="js/main.js"></script>
 </body>
 </html>

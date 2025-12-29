@@ -564,3 +564,112 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 }
 /* If this makes the menu appear immediately on refresh, 
    then our JavaScript logic is the problem. */
+
+
+/* css/ui.css */
+
+/* Top Bar */
+.resource-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    padding-top: 10px;
+    font-family: 'Orbitron', sans-serif;
+    pointer-events: none;
+}
+
+.res-item {
+    color: var(--neon-blue);
+    font-size: 1.2rem;
+    text-shadow: 0 0 10px var(--neon-blue);
+}
+
+/* Side Panel */
+.side-panel {
+    position: absolute;
+    top: 60px; /* Below resource bar */
+    right: 20px;
+    width: 220px;
+    bottom: 20px;
+    background: rgba(5, 7, 13, 0.9);
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    pointer-events: auto;
+}
+
+.panel-header {
+    color: #fff;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* Build Grid */
+.tower-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.build-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #444;
+    color: #aaa;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Orbitron', sans-serif;
+    transition: all 0.2s;
+}
+
+.build-btn:hover {
+    border-color: var(--neon-blue);
+    background: rgba(0, 243, 255, 0.1);
+    color: #fff;
+}
+
+.build-btn.active {
+    background: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-blue);
+}
+
+.tower-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+
+.tower-cost {
+    font-size: 0.7rem;
+    color: #ffd700;
+}
+
+/* Upgrade/Sell Buttons */
+.hud-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.hud-btn.upgrade { background: #00ff66; color: #000; }
+.hud-btn.sell { background: #ff0055; color: #fff; }
+.hud-btn:hover { opacity: 0.8; }

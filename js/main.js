@@ -2,9 +2,10 @@
 import { Navigation } from './ui/Navigation.js';
 import { SpaceScene } from './scenes/SpaceScene.js';
 import { AudioManager } from './core/AudioManager.js';
-import { Game } from './core/Game.js';
+import { Game } from './core/Game.js'; 
 
-let menuBackground = null; 
+// CHANGE THIS: Attach to window so we can control it from other files
+window.menuBackground = null; 
 
 window.onload = () => {
     window.audioManager = new AudioManager();
@@ -15,31 +16,26 @@ window.onload = () => {
 
     if (initBtn) {
         initBtn.onclick = async () => {
-            // 1. Give feedback if you clicked really fast
+            // ... (keep your audio logic here) ...
+            
+            // Visuals
             const originalText = initBtn.innerText;
             initBtn.innerText = "SYNCING DATA...";
-            initBtn.style.opacity = "0.5";
-
+            
             try {
-                // 2. THIS IS THE FIX: Wait for the music download to finish!
                 await window.audioManager.musicReady;
-                
-                // 3. Now it's safe to start
                 await window.audioManager.resumeContext(); 
                 window.audioManager.playMusic();
-            } catch (err) {
-                console.error("Audio glitch:", err);
-            }
+            } catch (err) { console.error(err); }
 
-            // 4. Visuals (Reset button just in case)
             initBtn.innerText = originalText;
-            
             if (bootScreen) bootScreen.classList.add('fade-out');
             if (mainMenu) mainMenu.classList.add('active');
             
-            if (menuBackground === null) {
-                menuBackground = new SpaceScene('game-canvas');
-                menuBackground.start();
+            // CHANGE THIS: Use the global window variable
+            if (window.menuBackground === null) {
+                window.menuBackground = new SpaceScene('game-canvas');
+                window.menuBackground.start();
             }
         };
     }

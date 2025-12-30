@@ -12,3 +12,5 @@ export const levels = [
     }
     // You can easily add more levels here later!
 ];
+
+//this is the map data

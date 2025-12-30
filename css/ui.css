@@ -602,19 +602,62 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 }
 
 /* Side Panel */
+/* css/ui.css */
+
+#btn-toggle-build {
+    position: absolute;
+    top: 70px; 
+    right: 20px;
+    width: 100px;
+    height: 40px;
+    background: rgba(0, 243, 255, 0.1);
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 50; 
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    transition: all 0.2s;
+
+    /* --- ADD THIS LINE TO FIX THE CLICK --- */
+    pointer-events: auto; 
+}
+
+#btn-toggle-build:hover {
+    background: var(--neon-blue);
+    color: black;
+    box-shadow: 0 0 15px var(--neon-blue);
+}
+
+/* SIDE PANEL - NOW HIDDEN BY DEFAULT */
 .side-panel {
     position: absolute;
-    top: 60px; /* Below resource bar */
-    right: 20px;
-    width: 220px;
+    top: 60px;
     bottom: 20px;
-    background: rgba(5, 7, 13, 0.9);
+    width: 300px;
+    
+    /* CHANGE: Move it off-screen to the right */
+    right: -350px; 
+    
+    background: rgba(5, 7, 13, 0.95);
     border: 1px solid var(--neon-blue);
-    box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+    border-right: none; /* Looks like it attaches to the side */
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
     padding: 15px;
     pointer-events: auto;
+    overflow-x: hidden;
+    
+    /* ANIMATION */
+    transition: right 0.3s cubic-bezier(0.1, 0.8, 0.2, 1);
+    z-index: 100;
+}
+
+/* When this class is added, the panel slides in */
+.side-panel.open {
+    right: 0; /* Slides to the edge of the screen */
 }
 
 .panel-header {
@@ -629,45 +672,62 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 /* Build Grid */
 .tower-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr; /* Single column stack */
     gap: 10px;
+    overflow-y: auto; /* Scroll if the list gets too long */
+    padding-right: 5px; /* Space for scrollbar */
 }
 
+/* Button Style - CHANGED TO HORIZONTAL BAR */
 .build-btn {
     background: rgba(255,255,255,0.05);
     border: 1px solid #444;
     color: #aaa;
     padding: 10px;
     cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    
+    /* Layout: Icon on left, Text on right */
+    display: flex; 
+    flex-direction: row; 
+    align-items: center; 
+    gap: 15px; 
+    
     font-family: 'Orbitron', sans-serif;
     transition: all 0.2s;
+    height: 60px; /* Fixed height for consistency */
 }
 
 .build-btn:hover {
     border-color: var(--neon-blue);
     background: rgba(0, 243, 255, 0.1);
     color: #fff;
+    transform: translateX(-5px); /* Slide left slightly on hover */
 }
 
 .build-btn.active {
     background: var(--neon-blue);
     color: #000;
     box-shadow: 0 0 15px var(--neon-blue);
+    border-color: #fff;
 }
 
 .tower-icon {
     width: 40px;
     height: 40px;
-    margin-bottom: 5px;
     border-radius: 4px;
+    flex-shrink: 0; /* Prevent icon from squishing */
+}
+
+/* Make text align cleanly */
+.build-btn span {
+    font-size: 0.9rem;
+    font-weight: bold;
 }
 
 .tower-cost {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     color: #ffd700;
+    margin-left: auto; /* Pushes cost to the far right */
 }
 
 /* Upgrade/Sell Buttons */
@@ -695,4 +755,48 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 .sub-menu.hidden {
     display: none !important;
     pointer-events: none !important;
+}
+
+/* Wave Controls - Bottom Center */
+.wave-controls {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    z-index: 20;
+    pointer-events: auto;
+}
+
+.wave-btn {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--neon-blue);
+    color: var(--neon-blue);
+    padding: 15px 40px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    cursor: pointer;
+    text-shadow: 0 0 10px var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+    transition: all 0.2s;
+}
+
+.wave-btn:hover {
+    background: var(--neon-blue);
+    color: black;
+    transform: scale(1.05);
+}
+
+.wave-btn.hidden {
+    display: none;
+}
+
+/* Optional: Make skip button yellow to warn user */
+#btn-skip-wave {
+    border-color: #ffd700;
+    color: #ffd700;
+    font-size: 1rem;
 }

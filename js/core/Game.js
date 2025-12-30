@@ -1,4 +1,10 @@
+// js/core/Game.js
+
 import { TOWER_TYPES } from '../data/towers.js';
+import { ENEMIES } from '../data/enemies.js';
+import { WAVES } from '../data/waves.js';
+import { Renderer } from './Renderer.js';
+import { Tower } from '../entities/Tower.js';
 
 export class Game {
     constructor(canvasId, levelId) {
@@ -6,41 +12,228 @@ export class Game {
         this.ctx = this.canvas.getContext('2d');
         this.levelId = levelId;
         
-        // Size
+        // Dimensions
         this.width = window.innerWidth;
         this.height = window.innerHeight;
         this.canvas.width = this.width;
         this.canvas.height = this.height;
-
-        // Grid
         this.tileSize = 60;
-        
+
         // Game State
         this.isRunning = true;
-        this.credits = 500;
-        this.towers = []; // Array to store placed towers
+        this.credits = 600;
+        this.lives = 20;
         
-        // Input State
+        // Wave System
+        this.waveIndex = 0; 
+        this.isWaveActive = false;
+        this.waveTimer = 0; 
+        this.enemiesRemainingToSpawn = 0;
+        this.spawnTimer = 0;
+        this.currentWaveConfig = null;
+
+        // Entities
+        this.towers = [];
+        this.enemies = [];
+        this.projectiles = []; 
+        this.troops = [];
+        
+        // Input
         this.mouse = { x: 0, y: 0 };
-        this.selectedTowerType = null; // What we are trying to build
         this.hoveredTile = { x: 0, y: 0 };
+        this.selectedTowerType = null;
 
         this.path = [];
         this.setupPath();
         this.setupInputs();
-        this.setupUI(); // Create the buttons
+        this.setupUI();
+        
+        // Renderer
+        this.renderer = new Renderer(this);
 
-        // Show the HUD
+        // Show UI
         document.getElementById('game-hud').classList.remove('hidden');
+        document.getElementById('btn-toggle-build').classList.remove('hidden');
+        this.updateResourceDisplay();
 
         this.loop();
     }
 
-    // --- SETUP ---
-    setupUI() {
-        const gridContainer = document.querySelector('.tower-grid');
-        gridContainer.innerHTML = '';
+    // --- GAME LOOP ---
+    loop = () => {
+        if (!this.isRunning) return;
+        this.update();
+        this.renderer.draw(); 
+        requestAnimationFrame(this.loop);
+    }
 
+    update() {
+        // --- 1. WAVE LOGIC (Restored) ---
+        if (this.isWaveActive) {
+            // Spawning
+            if (this.enemiesRemainingToSpawn > 0) {
+                this.spawnTimer++;
+                const framesToWait = this.currentWaveConfig.interval / 16; 
+                if (this.spawnTimer >= framesToWait) {
+                    this.spawnEnemy();
+                    this.spawnTimer = 0;
+                }
+            } else if (this.enemies.length === 0) {
+                // Wave Complete
+                this.isWaveActive = false;
+                const startBtn = document.getElementById('btn-start-wave');
+                const skipBtn = document.getElementById('btn-skip-wave');
+                if(startBtn) {
+                    startBtn.classList.remove('hidden');
+                    startBtn.innerText = `START WAVE ${this.waveIndex + 1}`;
+                }
+                if(skipBtn) skipBtn.classList.add('hidden');
+            }
+
+            // Skip Timer
+            this.waveTimer++;
+            if (this.waveTimer > 600 && this.enemies.length > 0) {
+                const skipBtn = document.getElementById('btn-skip-wave');
+                if(skipBtn) skipBtn.classList.remove('hidden');
+            }
+        }
+
+        this.troops.forEach((troop, index) => {
+            troop.update();
+            if (troop.markedForDeletion) {
+                this.troops.splice(index, 1);
+            }
+        });
+
+        // --- 2. UPDATE ENTITIES ---
+        this.towers.forEach(tower => tower.update());
+
+        this.projectiles.forEach((proj, index) => {
+            proj.update();
+            if (proj.markedForDeletion) {
+                this.projectiles.splice(index, 1);
+            }
+        });
+
+        this.enemies.forEach((enemy, index) => {
+            // Check Death
+            if (enemy.hp <= 0) {
+                this.credits += enemy.type.reward;
+                this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
+                this.enemies.splice(index, 1);
+                return;
+            }
+
+            // Move Enemy
+            const target = this.path[enemy.pathIndex + 1];
+            if (!target) return;
+
+            const tx = target.x * this.tileSize + this.tileSize/2;
+            const ty = target.y * this.tileSize + this.tileSize/2;
+            const dx = tx - enemy.x;
+            const dy = ty - enemy.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < enemy.speed) {
+                enemy.x = tx; enemy.y = ty; enemy.pathIndex++;
+                if (enemy.pathIndex >= this.path.length - 1) {
+                    this.lives--;
+                    this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
+                    this.enemies.splice(index, 1);
+                }
+            } else {
+                enemy.x += (dx / dist) * enemy.speed;
+                enemy.y += (dy / dist) * enemy.speed;
+            }
+        });
+    }
+
+    spawnEnemy() {
+        const typeConfig = ENEMIES[this.currentWaveConfig.type];
+        const enemy = {
+            id: Math.random(),
+            type: typeConfig,
+            x: this.path[0].x * this.tileSize + this.tileSize/2,
+            y: this.path[0].y * this.tileSize + this.tileSize/2,
+            pathIndex: 0,
+            hp: typeConfig.hp,
+            maxHp: typeConfig.hp,
+            speed: typeConfig.speed,
+            frozen: false
+        };
+        this.enemies.push(enemy);
+        this.enemiesRemainingToSpawn--;
+    }
+
+    // js/core/Game.js
+
+    startNextWave() {
+        if (this.waveIndex >= WAVES.length) return;
+
+        this.currentWaveConfig = WAVES[this.waveIndex];
+        this.enemiesRemainingToSpawn = this.currentWaveConfig.count;
+        this.spawnTimer = 0;
+        this.isWaveActive = true;
+        this.waveTimer = 0;
+        // --- NEW: ECONOMY CALCULATION ---
+        let waveReward = this.currentWaveConfig.reward;
+        let towerIncome = 0;
+        // 1. Loop through all towers
+        this.towers.forEach(tower => {
+            // 2. Check if it's an Economy tower (like the Energy Core)
+            if (tower.type.type === 'economy') {
+                towerIncome += tower.type.income;
+            }
+        });
+        // 3. Log it so you can see it working in the Console (F12)
+        if (towerIncome > 0) {
+            console.log(`$$$ PAYDAY: Generated ${towerIncome} credits from towers.`);
+        }
+        // 4. Add everything to your bank
+        this.credits += (waveReward + towerIncome);
+        // -----------------------------
+        this.updateResourceDisplay();
+        this.waveIndex++;
+        
+        document.getElementById('res-wave').innerText = this.waveIndex;
+        document.getElementById('btn-start-wave').classList.add('hidden');
+        document.getElementById('btn-skip-wave').classList.add('hidden');
+    }
+
+    setupPath() {
+         this.path = [
+            { x: 0, y: 2 }, { x: 5, y: 2 }, { x: 5, y: 10 }, 
+            { x: 12, y: 10 }, { x: 12, y: 4 }, { x: 20, y: 4 }, 
+            { x: 20, y: 12 }, { x: 28, y: 12 }, { x: 35, y: 12 }
+        ];
+    }
+
+    setupUI() {
+        const startBtn = document.getElementById('btn-start-wave');
+        const skipBtn = document.getElementById('btn-skip-wave');
+        if (startBtn) startBtn.onclick = () => this.startNextWave();
+        if (skipBtn) skipBtn.onclick = () => this.startNextWave();
+        
+        const gridContainer = document.querySelector('.tower-grid');
+        const sidePanel = document.querySelector('.side-panel');
+        const buildBtn = document.getElementById('btn-toggle-build');
+
+        if (buildBtn) {
+            buildBtn.onclick = (e) => {
+                e.stopPropagation(); 
+                sidePanel.classList.toggle('open');
+            };
+        }
+
+        window.addEventListener('click', (e) => {
+            if (sidePanel.classList.contains('open') && 
+                !sidePanel.contains(e.target) && 
+                e.target !== buildBtn) {
+                sidePanel.classList.remove('open');
+            }
+        });
+
+        gridContainer.innerHTML = '';
         Object.values(TOWER_TYPES).forEach(tower => {
             const btn = document.createElement('div');
             btn.className = 'build-btn';
@@ -49,17 +242,16 @@ export class Game {
                 <span>${tower.name.split(' ')[0]}</span>
                 <span class="tower-cost">${tower.cost}</span>
             `;
-            
-            btn.onclick = () => {
-                // Toggle selection
+            btn.onclick = (e) => {
+                e.stopPropagation();
                 if (this.selectedTowerType === tower) {
                     this.selectedTowerType = null;
                     btn.classList.remove('active');
                 } else {
-                    // Remove active from others
                     document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('active'));
                     this.selectedTowerType = tower;
                     btn.classList.add('active');
+                    sidePanel.classList.remove('open');
                 }
             };
             gridContainer.appendChild(btn);
@@ -67,172 +259,41 @@ export class Game {
     }
 
     setupInputs() {
-        // Track Mouse
         this.canvas.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             this.mouse.x = e.clientX - rect.left;
             this.mouse.y = e.clientY - rect.top;
-
-            // Calculate Grid Tile
             this.hoveredTile.x = Math.floor(this.mouse.x / this.tileSize) * this.tileSize;
             this.hoveredTile.y = Math.floor(this.mouse.y / this.tileSize) * this.tileSize;
         });
 
-        // Click to Build
         this.canvas.addEventListener('click', () => {
-            if (this.selectedTowerType) {
-                this.placeTower();
-            }
+            if (this.selectedTowerType) this.placeTower();
         });
-    }
-
-    // --- GAME LOGIC ---
-    placeTower() {
-        // 1. Check Cost
-        if (this.credits < this.selectedTowerType.cost) {
-            console.log("Not enough credits!");
-            return;
-        }
-
-        // 2. Check Valid Position (Not on path, Not on another tower)
-        // (Simple check for now: just basic placement)
-        
-        // 3. Create Tower Object
-        const newTower = {
-            x: this.hoveredTile.x + this.tileSize/2,
-            y: this.hoveredTile.y + this.tileSize/2,
-            type: this.selectedTowerType,
-            level: 1
-        };
-
-        this.towers.push(newTower);
-        this.credits -= this.selectedTowerType.cost;
-        this.updateResourceDisplay();
-        
-        // Optional: Deselect after building
-        // this.selectedTowerType = null; 
     }
 
     updateResourceDisplay() {
         document.getElementById('res-credits').innerText = this.credits;
+        document.getElementById('res-lives').innerText = this.lives;
     }
 
-    // ... (Keep setupPath, resize, stop from previous code) ...
-    setupPath() { /* Use your winding path code here */ 
-         this.path = [
-            { x: 0, y: 2 }, { x: 5, y: 2 }, { x: 5, y: 10 }, 
-            { x: 12, y: 10 }, { x: 12, y: 4 }, { x: 20, y: 4 }, 
-            { x: 20, y: 12 }, { x: 28, y: 12 }, { x: 35, y: 12 }
-        ];
-    }
-    
-    resize() { /* Keep resize code */ }
-    stop() { this.isRunning = false; }
+    placeTower() {
+         if (this.credits < this.selectedTowerType.cost) return;
+         
+         const newTower = new Tower(
+             this, 
+             this.hoveredTile.x + this.tileSize/2,
+             this.hoveredTile.y + this.tileSize/2,
+             this.selectedTowerType
+         );
 
-    // --- RENDER LOOP ---
-    loop = () => {
-        if (!this.isRunning) return;
-        this.draw();
-        requestAnimationFrame(this.loop);
-    }
-
-    draw() {
-        // Clear Screen
-        this.ctx.fillStyle = '#05070d';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-
-        this.drawGrid();
-        this.drawPath(); // (Assuming you kept this function)
+        this.towers.push(newTower);
+        this.credits -= this.selectedTowerType.cost;
         
-        // Draw Towers
-        this.drawTowers();
-
-        // Draw Placement Preview (Ghost)
-        if (this.selectedTowerType) {
-            this.drawPreview();
-        }
-    }
-
-    drawTowers() {
-        this.towers.forEach(tower => {
-            // Draw Base
-            this.ctx.fillStyle = tower.type.color;
-            this.ctx.fillRect(
-                tower.x - 20, tower.y - 20, 
-                40, 40
-            );
-            
-            // Draw Level Badge
-            this.ctx.fillStyle = 'white';
-            this.ctx.font = '10px Arial';
-            this.ctx.fillText(`LV${tower.level}`, tower.x - 10, tower.y + 5);
-        });
-    }
-
-    drawPreview() {
-        const tx = this.hoveredTile.x + this.tileSize/2;
-        const ty = this.hoveredTile.y + this.tileSize/2;
+        this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
         
-        // Draw Range Circle
-        this.ctx.beginPath();
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.arc(tx, ty, this.selectedTowerType.range, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.stroke();
-
-        // Draw Ghost Tower
-        this.ctx.fillStyle = this.selectedTowerType.color;
-        this.ctx.globalAlpha = 0.5;
-        this.ctx.fillRect(tx - 20, ty - 20, 40, 40);
-        this.ctx.globalAlpha = 1.0;
+        // Manual Deselect Logic
+        this.selectedTowerType = null;
+        document.querySelectorAll('.build-btn').forEach(btn => btn.classList.remove('active'));
     }
-
-    drawGrid() { /* Keep your grid code */ 
-        this.ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
-        this.ctx.lineWidth = 1;
-        for (let x = 0; x <= this.width; x += this.tileSize) {
-            this.ctx.beginPath(); this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.height); this.ctx.stroke();
-        }
-        for (let y = 0; y <= this.height; y += this.tileSize) {
-            this.ctx.beginPath(); this.ctx.moveTo(0, y); this.ctx.lineTo(this.width, y); this.ctx.stroke();
-        }
-    }
-    
-    drawPath() {
-        if (this.path.length < 2) return;
-
-        const ctx = this.ctx;
-        const ts = this.tileSize;
-
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255, 68, 68, 0.5)'; 
-        ctx.lineWidth = 3;
-        ctx.setLineDash([10, 10]); 
-
-        const startX = this.path[0].x * ts + ts / 2;
-        const startY = this.path[0].y * ts + ts / 2;
-        ctx.moveTo(startX, startY);
-
-        for (let i = 1; i < this.path.length; i++) {
-            const px = this.path[i].x * ts + ts / 2;
-            const py = this.path[i].y * ts + ts / 2;
-            ctx.lineTo(px, py);
-        }
-
-        ctx.stroke();
-        ctx.setLineDash([]); 
-
-        ctx.fillStyle = '#ff4444';
-        const endNode = this.path[this.path.length - 1];
-        ctx.beginPath();
-        ctx.arc(endNode.x * ts + ts / 2, endNode.y * ts + ts / 2, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#00ff00';
-        ctx.beginPath();
-        ctx.arc(startX, startY, 8, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
 }

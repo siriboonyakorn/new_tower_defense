@@ -53,7 +53,7 @@ export const TOWER_TYPES = {
         cost: 450,
         range: 120, // Range to detect enemies to send troops?
         damage: 0,
-        fireRate: 300, // Spawn rate
+        fireRate: 120, // Spawn rate
         color: '#aa00ff', // Neon Purple
         description: 'Deploys mobile units (Robots, Cars, Tanks) to fight.'
     }

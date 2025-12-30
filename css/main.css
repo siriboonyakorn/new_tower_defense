@@ -15,13 +15,11 @@
 body {
     background-color: var(--bg-color);
     font-family: 'Orbitron', sans-serif;
-    overflow: hidden; /* Prevents scrollbars */
+    overflow: hidden; 
     color: white;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: #050505; /* A very dark grey, not pure black */
-    /* Remove any background-image or animation: earth-drift lines here! */
+    touch-action: none; /* Disables all browser-handled touch actions like pinch-zoom */
+    user-select: none;  /* Prevents highlighting text while clicking fast */
+    overscroll-behavior: none; /* Prevents the 'bounce' effect at page edges */
 }
 
 #game-canvas {
@@ -30,8 +28,8 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: -1; /* This ensures stars are BEHIND the buttons */
-    background-color: #000 !important; /* Force the canvas back to black */
+    z-index: -1; 
+    background-color: #000; 
 }
 
 #ui-layer {
@@ -41,10 +39,114 @@ body {
     width: 100%;
     height: 100%;
     z-index: 10;
-    pointer-events: none; /* Let clicks pass through to canvas if no UI is present */
+    pointer-events: none; 
 }
 
-/* Helper Class */
 .hidden {
     display: none !important;
+}
+
+/* --- FIXING THE BOOT SCREEN --- */
+#boot-screen {
+    position: fixed; /* Must be fixed to cover everything */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000; /* Solid black background */
+    z-index: 9999; /* Sit on top of everything */
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    transition: opacity 1s ease, visibility 1s;
+    opacity: 1;
+    visibility: visible;
+}
+
+#boot-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#transition-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999999; /* Max priority */
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* The Top Door */
+.shutter-top {
+    z-index: 10;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: #05070d;
+    border-bottom: 2px solid var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+    
+    /* Start position: Hidden above screen */
+    transform: translateY(-100%); 
+    transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+/* The Bottom Door */
+.shutter-bottom {
+    z-index: 10;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: #05070d;
+    border-top: 2px solid var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+    
+    /* Start position: Hidden below screen */
+    transform: translateY(100%); 
+    transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+/* The Text in the middle */
+.transition-text {
+    position: relative;
+    z-index: 20; /* Text sits higher than shutters */
+    color: var(--neon-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem; /* Made it a bit bigger for impact */
+    letter-spacing: 8px;
+    font-weight: 900;
+    
+    /* ADD THIS: A dark glow behind the text to 'cut' through the neon lines */
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.8), 0 0 40px rgba(0, 0, 0, 1);
+    background: rgba(5, 7, 13, 0.4); /* Very subtle dark box to clear the lines */
+    padding: 20px 40px;
+    
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.3s ease-out;
+}
+
+/* --- THE ACTIVE STATE (CLOSED) --- */
+#transition-layer.active .shutter-top {
+    transform: translateY(0); /* Move to center */
+}
+
+#transition-layer.active .shutter-bottom {
+    transform: translateY(0); /* Move to center */
+}
+
+#transition-layer.active .transition-text {
+    opacity: 1;
+    transform: scale(1);
 }

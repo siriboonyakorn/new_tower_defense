@@ -212,13 +212,24 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 
 #boot-screen {
     position: fixed;
-    inset: 0;
-    background: #000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    z-index: 9999;
+    
     display: flex;
+    flex-direction: column; /* Stacks text and button */
     justify-content: center;
     align-items: center;
-    z-index: 20000;
-    transition: opacity 1s ease;
+    
+    /* FIX 2: THE ANIMATION SETUP */
+    /* This tells the browser: "Any change to opacity takes 1.5 seconds" */
+    transition: opacity 1.5s ease-out, visibility 1.5s;
+    
+    opacity: 1;
+    visibility: visible;
 }
 
 #btn-initialize {
@@ -240,8 +251,8 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 /* Change this line in css/ui.css */
 #boot-screen.fade-out {
     opacity: 0;
-    pointer-events: none;
-    visibility: hidden; /* Added this to be extra safe */
+    visibility: hidden;
+    pointer-events: none; /* Allows clicking through while it fades */
 }
 
 /* Add to css/ui.css */
@@ -673,3 +684,15 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
 .hud-btn.upgrade { background: #00ff66; color: #000; }
 .hud-btn.sell { background: #ff0055; color: #fff; }
 .hud-btn:hover { opacity: 0.8; }
+
+/* Ensure that when the menu is not active, it is physically gone */
+.menu-screen:not(.active) {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+/* Ensure sub-menus are fully removed when hidden */
+.sub-menu.hidden {
+    display: none !important;
+    pointer-events: none !important;
+}

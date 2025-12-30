@@ -97,31 +97,47 @@ export class Navigation {
             };
         }
 
+        // js/ui/Navigation.js
+
         if (deployBtn) {
             deployBtn.onclick = () => {
                 if (this.selectedLevelId) {
-                    // 1. Close UI
-                    this.closeMenu(deploymentOverlay);
-                    document.getElementById('main-menu').classList.remove('active');
                     
-                    // 2. IMPORTANT: Stop the Star Background!
-                    if (window.menuBackground) {
-                        window.menuBackground.stop(); // Stops the render loop
-                        // Optional: Clear the variable
-                        // window.menuBackground = null; 
-                    }
+                    // 1. Get Elements
+                    const transitionLayer = document.getElementById('transition-layer');
+                    const mainMenu = document.getElementById('main-menu');
 
-                    // 3. Stop any previous game instance
-                    if (window.game) {
-                        window.game.stop();
-                    }
+                    // 2. TRIGGER SHUTTER CLOSE
+                    transitionLayer.classList.add('active');
                     
-                    // 4. Start the new Game
-                    console.log("System: Grid Initialization...");
-                    window.game = new Game('game-canvas', this.selectedLevelId);
+                    // Play a sound effect if you have one (Optional)
+                    // window.audioManager.playUI('click'); 
+
+                    // 3. WAIT FOR SHUTTERS TO CLOSE (400ms match CSS)
+                    setTimeout(() => {
+                        // --- THE "SECRET" SWAP HAPPENS HERE ---
+                        
+                        // A. Hide the Menu Layers behind the doors
+                        this.closeMenu(deploymentOverlay);
+                        if (mainMenu) mainMenu.classList.remove('active');
+                        document.querySelectorAll('.sub-menu').forEach(m => m.classList.add('hidden'));
+
+                        // B. Stop the Stars
+                        if (window.menuBackground) window.menuBackground.stop();
+
+                        // C. Start the Game Engine
+                        if (window.game) window.game.stop();
+                        window.game = new Game('game-canvas', this.selectedLevelId);
+
+                        // 4. WAIT A TINY BIT, THEN OPEN SHUTTERS
+                        setTimeout(() => {
+                            transitionLayer.classList.remove('active');
+                        }, 600); // 600ms extra delay to let the game render frame 1
+
+                    }, 400); // Wait 400ms for doors to slam shut
                 }
             };
-}
+        }
 
         if (closeDeployment) closeDeployment.onclick = () => this.closeMenu(deploymentOverlay);
 

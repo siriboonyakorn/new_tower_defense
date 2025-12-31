@@ -800,3 +800,188 @@ select { background: #111; border: 1px solid #333; color: white; padding: 8px; f
     color: #ffd700;
     font-size: 1rem;
 }
+
+/* css/ui.css - ADD THIS AT THE BOTTOM */
+
+/* --- EXPANDED SETTINGS STYLES --- */
+
+.settings-window {
+    width: 500px; 
+    height: auto;
+    max-height: 80vh;
+    padding: 0; /* Reset padding to handle inner layout */
+}
+
+.settings-content {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.settings-section-title {
+    color: var(--neon-orange);
+    font-size: 0.9rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.setting-row label {
+    color: #aaa;
+    font-size: 1rem;
+}
+
+/* --- THE COOL TOGGLE SWITCH --- */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border: 1px solid #555;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--neon-blue);
+    border-color: var(--neon-blue);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+    background-color: black;
+}
+
+/* Round sliders */
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Footer Button */
+.settings-footer {
+    padding: 15px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: center;
+    background: rgba(0,0,0,0.2);
+}
+
+.action-btn.small {
+    font-size: 1rem;
+    padding: 10px 30px;
+    width: auto;
+}
+
+/* css/ui.css - Add this to style the sliders */
+
+/* 1. Reset Default Appearance */
+input[type=range] {
+    -webkit-appearance: none; /* Kills default look */
+    width: 100%;
+    background: transparent;
+    margin: 10px 0;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+/* 2. The Track (The line you slide on) */
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 2px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+/* 3. The Thumb (The glowing circle you drag) */
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: var(--neon-blue);
+    cursor: pointer;
+    margin-top: -7px; /* Centers it on the track */
+    box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue); /* GLOW EFFECT */
+    transition: transform 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #fff;
+}
+
+/* css/ui.css - Update the Apply Button */
+
+#btn-save-settings {
+    background: rgba(0, 243, 255, 0.1); /* Subtle blue tint */
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* Make it look techy with angled corners */
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+#btn-save-settings:hover {
+    background: var(--neon-blue);
+    color: black; /* Text turns black for contrast */
+    box-shadow: 0 0 25px var(--neon-blue); /* Big glow */
+    transform: translateY(-2px);
+}
+
+#btn-save-settings:active {
+    transform: translateY(1px);
+}
+
+.settings-header {
+    background: linear-gradient(90deg, rgba(0, 243, 255, 0.15) 0%, rgba(0,0,0,0) 100%);
+    border-bottom: 1px solid var(--neon-blue);
+}

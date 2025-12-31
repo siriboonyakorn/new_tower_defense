@@ -74,19 +74,63 @@
         </div>
 
         <div id="settings-overlay" class="sub-menu hidden">
-            <div class="settings-window">
-                <div class="settings-header">
-                    <span>SYSTEM_CONFIGURATION</span>
-                    <button id="close-settings" class="close-btn">CLOSE [ESC / X]</button>
-                </div>
-                <div class="settings-content">
-                    <div class="setting-row">
-                        <label>MASTER VOLUME</label>
-                        <input type="range" id="volume-slider" min="0" max="100" value="80">
-                    </div>
-                </div>
-            </div>
+    <div class="settings-window">
+        <div class="settings-header">
+            <span>SYSTEM_CONFIGURATION</span>
+            <button id="close-settings" class="close-btn">CLOSE</button>
         </div>
+        
+        <div class="settings-content">
+            
+            <h4 class="settings-section-title">AUDIO_feed</h4>
+            <div class="setting-row">
+                <label>MASTER VOLUME</label>
+                <input type="range" id="volume-slider" min="0" max="100" value="50">
+            </div>
+            <div class="setting-row">
+                <label>SFX VOLUME</label>
+                <input type="range" id="sfx-slider" min="0" max="100" value="80">
+            </div>
+
+            <h4 class="settings-section-title">VISUAL_optics</h4>
+            <div class="setting-row">
+                <label>PARTICLE EFFECTS</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked id="opt-particles">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <label>SHOW TOWER RANGE</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="opt-range">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <h4 class="settings-section-title">TACTICAL_protocols</h4>
+            <div class="setting-row">
+                <label>AUTO-START WAVES</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="opt-autostart">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <label>DAMAGE NUMBERS</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked id="opt-damage">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+        </div>
+        
+        <div class="settings-footer">
+            <button class="action-btn small" id="btn-save-settings">APPLY CHANGES</button>
+        </div>
+    </div>
+</div>
 
         <div id="deployment-overlay" class="sub-menu hidden">
             <div class="deployment-window">

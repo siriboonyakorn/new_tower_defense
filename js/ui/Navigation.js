@@ -8,32 +8,42 @@ export class Navigation {
         this.setupKeyboardListeners();
     }
 
-    populateMapList() {
-        const mapListContainer = document.getElementById('map-list');
-        mapListContainer.innerHTML = ''; 
+    // js/ui/Navigation.js
 
-        levels.forEach(level => {
-            const mapCard = document.createElement('div');
-            mapCard.className = 'map-card';
-            mapCard.dataset.id = level.id;
+populateMapList() {
+    const mapListContainer = document.getElementById('map-list');
+    if (!mapListContainer) return;
 
-            mapCard.innerHTML = `
-                <div class="map-card-placeholder">
-                    <span>${level.name}</span>
-                </div>
-                <div class="map-info">
-                    <div class="map-name">${level.name}</div>
-                    <div class="map-meta">
-                        <span>DIFF: ${level.difficulty}</span>
-                        <span>MULT: x${level.multiplier.toFixed(2)}</span>
-                    </div>
-                </div>
-            `;
+    mapListContainer.innerHTML = ''; 
 
-            mapCard.addEventListener('click', () => this.selectLevel(level.id));
-            mapListContainer.appendChild(mapCard);
-        });
+    levels.forEach(level => {
+        const mapCard = document.createElement('div');
+        mapCard.className = 'map-card'; // Changed from map-btn to map-card
+        if (this.selectedLevelId === level.id) mapCard.classList.add('selected');
+        
+        mapCard.innerHTML = `
+            <span class="map-name">${level.name}</span>
+            <span class="map-diff" style="color: ${this.getDifficultyColor(level.difficulty)};">
+                ${level.difficulty}
+            </span>
+        `;
+
+        mapCard.onclick = () => this.selectLevel(level.id);
+        mapListContainer.appendChild(mapCard);
+    });
+}
+
+// Add this helper to give each difficulty a unique color
+getDifficultyColor(diff) {
+    switch(diff) {
+        case 'EASY': return '#00f3ff';   // Cyan
+        case 'NORMAL': return '#00ff00'; // Green
+        case 'HARD': return '#ff9f00';   // Orange
+        case 'INSANE': return '#ff00ff'; // Magenta
+        case 'OMEGA': return '#ff0000';  // Red
+        default: return '#ffffff';
     }
+}
 
     selectLevel(id) {
         this.selectedLevelId = id;

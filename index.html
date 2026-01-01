@@ -26,6 +26,7 @@
         </div>
     </div>
 
+
     <div id="ui-layer">
         
         <div id="main-menu" class="menu-screen">
@@ -216,15 +217,23 @@
 
                 <div id="inspect-menu" class="hidden">
                     <h3 class="panel-header" id="inspect-name">TOWER NAME</h3>
-                    <div class="inspect-stats" id="inspect-stats"></div>
+                    
+                    <div class="inspect-stats" id="inspect-stats">
+                        </div>
                     
                     <div class="action-buttons">
                         <button id="btn-upgrade" class="hud-btn upgrade">
-                            UPGRADE (<span id="upgrade-cost">150</span>)
+                            UPGRADE <span id="upgrade-cost">(150)</span>
                         </button>
+
+                        <button id="btn-target" class="hud-btn target">
+                            TARGET: FIRST
+                        </button>
+
                         <button id="btn-sell" class="hud-btn sell">
                             SELL (<span id="sell-value">50</span>)
                         </button>
+
                         <button id="btn-deselect" class="hud-btn">BACK</button>
                     </div>
                 </div>
@@ -232,6 +241,17 @@
         </div>
 
     </div> 
+    <div id="end-screen" class="hidden">
+        <div class="end-card">
+            <h1 id="end-title">GAME OVER</h1>
+            <div class="end-stats">
+                <p id="end-reason">BASE DESTROYED</p>
+                <p>WAVES CLEARED: <span id="end-waves">0</span></p>
+            </div>
+            <button id="btn-return-menu" class="menu-btn">RETURN TO MENU</button>
+        </div>
+    </div>
+    
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

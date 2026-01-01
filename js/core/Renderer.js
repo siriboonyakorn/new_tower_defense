@@ -32,38 +32,30 @@ export class Renderer {
     }
 
     drawTroops() {
-        // If this function is missing, troops are invisible!
         this.game.troops.forEach(troop => {
-            this.ctx.fillStyle = troop.color || '#ffffff'; // Default to white
             this.ctx.beginPath();
-            this.ctx.arc(troop.x, troop.y, troop.radius, 0, Math.PI * 2);
+            this.ctx.fillStyle = '#00ff00'; // Green Dot
+            this.ctx.arc(troop.x, troop.y, 6, 0, Math.PI * 2);
             this.ctx.fill();
             
-            // Draw little sword/fight indicator if fighting
-            if (troop.isFighting) {
-                this.ctx.strokeStyle = '#fff';
-                this.ctx.lineWidth = 2;
-                this.ctx.beginPath();
-                this.ctx.moveTo(troop.x - 4, troop.y - 4);
-                this.ctx.lineTo(troop.x + 4, troop.y + 4);
-                this.ctx.moveTo(troop.x + 4, troop.y - 4);
-                this.ctx.lineTo(troop.x - 4, troop.y + 4);
-                this.ctx.stroke();
-            }
+            // Optional: Draw a tiny sword/range circle
+            this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+            this.ctx.stroke();
+            this.ctx.closePath();
         });
     }
 
     drawProjectiles() {
-        this.game.projectiles.forEach(p => {
+        this.game.projectiles.forEach(proj => {
             this.ctx.beginPath();
-            this.ctx.fillStyle = p.color;
-            this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            this.ctx.fill();
             
-            this.ctx.shadowBlur = 10;
-            this.ctx.shadowColor = p.color;
+            // NO GLOW (Removed shadowBlur) = Looks like a physical bullet
+            this.ctx.fillStyle = '#FFD700'; // Gold color
+            
+            // Draw a slightly smaller, solid circle
+            this.ctx.arc(proj.x, proj.y, 3, 0, Math.PI * 2); 
             this.ctx.fill();
-            this.ctx.shadowBlur = 0;
+            this.ctx.closePath();
         });
     }
 
@@ -76,17 +68,28 @@ export class Renderer {
 
     drawEnemies() {
         this.game.enemies.forEach(enemy => {
-            this.ctx.fillStyle = enemy.type.color;
+            // A. Draw the Enemy Circle
             this.ctx.beginPath();
-            this.ctx.arc(enemy.x, enemy.y, enemy.type.radius, 0, Math.PI * 2);
+            this.ctx.fillStyle = enemy.type.color;
+            this.ctx.arc(enemy.x, enemy.y, 10, 0, Math.PI * 2); // 10 is radius
             this.ctx.fill();
+            this.ctx.closePath();
 
-            // HP Bar
-            const hpPercent = enemy.hp / enemy.type.maxHp;
+            // B. Draw Health Bar Background (Red)
+            const barWidth = 30;
+            const barHeight = 4;
+            const barX = enemy.x - barWidth / 2;
+            const barY = enemy.y - 18; // Position above enemy
+
             this.ctx.fillStyle = 'red';
-            this.ctx.fillRect(enemy.x - 10, enemy.y - 20, 20, 4);
+            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // C. Draw Current Health (Green) - THE IMPORTANT MATH
+            // limit lower bound to 0 so bar doesn't draw backwards if HP < 0
+            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp); 
+            
             this.ctx.fillStyle = '#00ff00';
-            this.ctx.fillRect(enemy.x - 10, enemy.y - 20, 20 * hpPercent, 4);
+            this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
         });
     }
 

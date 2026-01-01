@@ -111,40 +111,35 @@ getDifficultyColor(diff) {
 
         if (deployBtn) {
             deployBtn.onclick = () => {
-                if (this.selectedLevelId) {
+                // 1. Capture the ID RIGHT NOW before any timers start
+                const targetLevelId = this.selectedLevelId; 
+
+                if (targetLevelId) {
+                    console.log("Deploying to:", targetLevelId); 
                     
-                    // 1. Get Elements
                     const transitionLayer = document.getElementById('transition-layer');
                     const mainMenu = document.getElementById('main-menu');
 
-                    // 2. TRIGGER SHUTTER CLOSE
                     transitionLayer.classList.add('active');
                     
-                    // Play a sound effect if you have one (Optional)
-                    // window.audioManager.playUI('click'); 
-
-                    // 3. WAIT FOR SHUTTERS TO CLOSE (400ms match CSS)
                     setTimeout(() => {
-                        // --- THE "SECRET" SWAP HAPPENS HERE ---
-                        
-                        // A. Hide the Menu Layers behind the doors
                         this.closeMenu(deploymentOverlay);
                         if (mainMenu) mainMenu.classList.remove('active');
                         document.querySelectorAll('.sub-menu').forEach(m => m.classList.add('hidden'));
 
-                        // B. Stop the Stars
                         if (window.menuBackground) window.menuBackground.stop();
 
-                        // C. Start the Game Engine
                         if (window.game) window.game.stop();
-                        window.game = new Game('game-canvas', this.selectedLevelId);
 
-                        // 4. WAIT A TINY BIT, THEN OPEN SHUTTERS
+                        // 2. USE THE CAPTURED ID HERE
+                        // This ensures 'targetLevelId' is not null when the game starts
+                        window.game = new Game('game-canvas', targetLevelId);
+
                         setTimeout(() => {
                             transitionLayer.classList.remove('active');
-                        }, 600); // 600ms extra delay to let the game render frame 1
+                        }, 600);
 
-                    }, 400); // Wait 400ms for doors to slam shut
+                    }, 400); 
                 }
             };
         }

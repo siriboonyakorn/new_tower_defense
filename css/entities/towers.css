@@ -1,0 +1,41 @@
+/* css/entities/towers.css */
+
+.tower-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Upgrade/Sell Buttons in the Inspect Menu */
+.hud-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.hud-btn.upgrade { 
+    background: var(--neon-green); 
+    color: #000; 
+}
+
+.hud-btn.sell { 
+    background: var(--neon-red); 
+    color: #fff; 
+}
+
+.hud-btn.target {
+    background: linear-gradient(45deg, var(--neon-orange), #FF6B6B);
+    color: black;
+}
+
+.hud-btn.locked {
+    background: #333;
+    color: #555;
+    pointer-events: none;
+    border: 1px solid #444;
+}

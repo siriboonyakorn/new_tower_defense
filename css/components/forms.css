@@ -1,0 +1,140 @@
+/* css/components/forms.css */
+
+/* --- 1. ROW LAYOUT --- */
+/* Merged version: Ensures labels on left, controls on right */
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-row label {
+    color: #aaa;
+    font-size: 1rem;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+}
+
+/* --- 2. RANGE SLIDERS (Volume, etc.) --- */
+input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 20px;
+    width: 150px; /* Fixed width for better alignment */
+    margin: 0;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+/* The Track (The Line) */
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 2px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+/* The Thumb (The Knob) */
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 18px;
+    width: 18px;
+    background: var(--neon-blue);
+    cursor: pointer;
+    margin-top: -8px; /* Centers knob on track */
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+    transition: transform 0.1s, background 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #fff;
+}
+
+/* --- 3. TOGGLE SWITCHES (On/Off) --- */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border: 1px solid #555;
+    border-radius: 34px; /* Default to round */
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--neon-blue);
+    border-color: var(--neon-blue);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+    background-color: black;
+}
+
+/* --- 4. SELECT BOXES --- */
+select {
+    background: #111;
+    border: 1px solid #333;
+    color: white;
+    padding: 8px 12px;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+}
+
+select:hover {
+    border-color: var(--neon-blue);
+}
+
+/* --- 5. ACTION BUTTONS --- */
+.settings-action-btn, .action-btn.small {
+    background: transparent;
+    border: 1px solid var(--neon-blue);
+    color: white;
+    padding: 10px 20px;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.settings-action-btn:hover, .action-btn.small:hover {
+    background: rgba(0, 243, 255, 0.1);
+    box-shadow: 0 0 10px var(--neon-blue);
+}

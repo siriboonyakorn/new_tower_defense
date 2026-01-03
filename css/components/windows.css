@@ -1,0 +1,92 @@
+/* css/components/windows.css */
+
+/* THE MAIN BOX */
+.settings-window {
+    width: 600px;
+    height: 450px;
+    background: rgba(8, 10, 15, 0.98);
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.15), inset 0 0 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    /* Angled corners */
+    clip-path: polygon(
+        20px 0, 100% 0, 
+        100% calc(100% - 20px), calc(100% - 20px) 100%, 
+        0 100%, 0 20px
+    );
+    animation: window-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* BACKGROUND GRID EFFECT */
+.settings-window::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* LAYOUT CONTAINER */
+.settings-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* SIDEBAR TABS */
+.settings-sidebar {
+    width: 160px;
+    background: rgba(0, 0, 0, 0.3);
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    padding-top: 20px;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 15px 20px;
+    text-align: left;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: 0.2s;
+}
+
+.tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    color: var(--neon-blue);
+    border-left: 3px solid var(--neon-blue);
+    background: linear-gradient(90deg, rgba(0, 243, 255, 0.1), transparent);
+    text-shadow: 0 0 8px var(--neon-blue);
+}
+
+/* CONTENT AREA */
+.settings-viewport {
+    flex: 1;
+    padding: 30px;
+    position: relative;
+}
+
+.tab-content {
+    display: none; /* Hide all tabs by default */
+    animation: fade-in 0.3s;
+}
+
+.tab-content.active {
+    display: block; /* Show active tab */
+}
+
+@keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }

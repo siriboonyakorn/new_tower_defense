@@ -178,3 +178,6 @@ export class Tower {
         this.game.troops.push(troop);
     }
 }
+
+//let goon = new Troop(game, x, y);
+//goon.pathIndex = game.path.length - 1; // Start at the end of the path

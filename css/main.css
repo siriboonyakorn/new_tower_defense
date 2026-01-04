@@ -1,4 +1,37 @@
 /* css/main.css */
+
+/* ==========================================================================
+   MAIN ARCHITECTURE BRIDGE
+   ========================================================================== */
+
+/* 1. BASE LAYER - Core settings and DNA */
+@import 'base/variables.css';
+@import 'base/reset.css';
+
+/* 2. COMPONENT LAYER - Reusable UI elements */
+@import 'components/buttons.css';
+@import 'components/windows.css';
+@import 'components/forms.css';
+@import 'components/tooltips.css';
+
+/* 3. LAYOUT LAYER - Permanent HUD elements */
+@import 'layout/topbar.css';
+@import 'layout/sidebar.css';
+@import 'layout/hud.css';
+@import 'layout/shop.css';
+
+/* 4. ENTITY LAYER - Unit-specific visuals */
+@import 'entities/towers.css';
+@import 'entities/enemies.css';
+@import 'entities/projectiles.css';
+
+/* 5. SCREEN LAYER - Full-screen overlays */
+@import 'screens/boot.css';
+@import 'screens/menu.css';
+@import 'screens/deployment.css';
+@import 'screens/game-over.css';
+/* @import 'screens/map-select.css'; // Uncomment when you add this file */
+
 :root {
     --neon-blue: #00f3ff;
     --neon-pink: #ff00ff;

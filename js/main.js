@@ -75,4 +75,47 @@ window.onload = () => {
                 e.preventDefault();
             }
         });
+
+    // Inside setupUI() ...
+
+// 1. Settings Tab Logic
+const tabs = document.querySelectorAll('.tab-btn');
+const contents = document.querySelectorAll('.tab-content');
+
+tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Remove active class from everything
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+
+        // Add active class to clicked tab
+        tab.classList.add('active');
+        
+        // Show corresponding content
+        const targetId = `tab-${tab.dataset.tab}`;
+        document.getElementById(targetId).classList.add('active');
+    });
+});
+
+// 2. Slider Number Updates
+document.querySelectorAll('input[type="range"]').forEach(range => {
+    range.addEventListener('input', (e) => {
+        // Find the span next to this slider and update text
+        const display = e.target.parentElement.querySelector('.value-display');
+        if(display) display.innerText = `${e.target.value}%`;
+    });
+});    
 };
+// A safer way to open windows
+function openWindow(id) {
+    const win = document.getElementById(id);
+    if (win) {
+        win.classList.remove('hidden');
+    } else {
+        console.error(`UI Error: Window with ID "${id}" not found!`);
+    }
+}
+
+// Update your listeners
+settingsBtn.onclick = () => openWindow('settings-window');
+logsBtn.onclick = () => openWindow('logs-window'); // Make sure this ID matches your HTML too!

@@ -1,0 +1,188 @@
+.menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 380px; 
+}
+
+.menu-item {
+    background: transparent;
+    border: none;
+    border-left: 4px solid #333;
+    color: #888;
+    padding: 12px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.35rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.menu-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 0%; height: 100%;
+    background: linear-gradient(90deg, rgba(0, 243, 255, 0.15), transparent);
+    transition: width 0.3s ease;
+    z-index: -1;
+}
+
+.menu-item:hover {
+    color: white;
+    border-left: 4px solid var(--neon-blue);
+    padding-left: 35px;
+    text-shadow: 0 0 10px var(--neon-blue);
+}
+
+.menu-item:hover::before { width: 100%; }
+
+.menu-item.locked {
+    color: #444;
+    border-left: 4px solid #222;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.menu-item.locked .tiny-tag {
+    font-size: 0.6rem;
+    background: #222;
+    color: #666;
+    padding: 3px 6px;
+    border-radius: 2px;
+    margin-left: auto;
+}
+
+/* BUILD BUTTONS (From later in your file) */
+.build-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #444;
+    color: #aaa;
+    padding: 10px;
+    cursor: pointer;
+    display: flex; 
+    flex-direction: row; 
+    align-items: center; 
+    gap: 15px; 
+    font-family: 'Orbitron', sans-serif;
+    transition: all 0.2s;
+    height: 60px; 
+}
+
+.build-btn:hover {
+    border-color: var(--neon-blue);
+    background: rgba(0, 243, 255, 0.1);
+    color: #fff;
+    transform: translateX(-5px); 
+}
+
+.build-btn.active {
+    background: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-blue);
+    border-color: #fff;
+}
+
+.tower-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    flex-shrink: 0; 
+}
+
+.build-btn span {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.tower-cost {
+    font-size: 0.8rem;
+    color: #ffd700;
+    margin-left: auto; 
+}
+
+/* HUD BUTTONS */
+.hud-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.hud-btn.upgrade { background: #00ff66; color: #000; }
+.hud-btn.sell { background: #ff0055; color: #fff; }
+.hud-btn:hover { opacity: 0.8; }
+
+.hud-btn.target {
+    background: linear-gradient(45deg, #FF9F43, #FF6B6B);
+    color: black;
+    border: none;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.hud-btn.locked {
+    background: #333;
+    color: #555;
+    pointer-events: none;
+    border: 1px solid #444;
+}
+
+/* DEPLOY BUTTON */
+.deploy-btn {
+    background: var(--neon-blue);
+    color: #000;
+    border: none;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+    pointer-events: none;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+}
+
+.deploy-btn:not(:disabled) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.deploy-btn:not(:disabled):hover {
+    background: white;
+    box-shadow: 0 0 50px rgba(0, 243, 255, 0.6);
+}
+
+/* SAVE BUTTON */
+#btn-save-settings {
+    background: rgba(0, 243, 255, 0.1); 
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+#btn-save-settings:hover {
+    background: var(--neon-blue);
+    color: black; 
+    box-shadow: 0 0 25px var(--neon-blue); 
+    transform: translateY(-2px);
+}
+
+#btn-save-settings:active {
+    transform: translateY(1px);
+}

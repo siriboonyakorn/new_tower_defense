@@ -1,0 +1,72 @@
+#btn-toggle-build {
+    position: absolute;
+    top: 70px; 
+    right: 20px;
+    width: 100px;
+    height: 40px;
+    background: rgba(0, 243, 255, 0.1);
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 50; 
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    transition: all 0.2s;
+    pointer-events: auto; 
+    display: none !important; /* From later in file */
+}
+
+#btn-toggle-build:hover {
+    background: var(--neon-blue);
+    color: black;
+    box-shadow: 0 0 15px var(--neon-blue);
+}
+
+.side-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100%;
+    background: rgba(10, 10, 16, 0.95);
+    border-left: 2px solid var(--neon-blue);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    pointer-events: auto; 
+    transform: none !important; 
+    transition: none;
+}
+
+.side-panel.open {
+    right: 0; 
+}
+
+.panel-header {
+    color: #fff;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.tower-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; 
+    gap: 10px;
+    margin-top: 20px;
+}
+/* Also found later in file */
+.tower-grid {
+    grid-template-columns: 1fr; /* Single column stack */
+    overflow-y: auto; 
+    padding-right: 5px; 
+}
+
+.menu-screen:not(.active) {
+    display: none !important;
+    pointer-events: none !important;
+}

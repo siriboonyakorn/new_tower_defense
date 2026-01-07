@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="data:,">
@@ -8,6 +9,7 @@
     <title>Sector Zero</title>
     <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
 
     <div id="transition-layer">
@@ -27,29 +29,29 @@
 
 
     <div id="ui-layer">
-        
+
         <div id="main-menu" class="menu-screen">
             <div class="menu-content">
                 <h1 class="game-title">SECTOR <span class="highlight">ZERO</span></h1>
-                
+
                 <div class="menu-list">
                     <button id="btn-start" class="menu-item">
                         <span class="icon">►</span> START OPERATION
                     </button>
-                    
+
                     <button id="btn-shop" class="menu-item">
                         <span class="icon">▤</span> SHOP
                     </button>
-                    
+
                     <button id="btn-surge" class="menu-item locked">
                         <span class="icon">✖</span> SURGE SUPPORT
                         <span class="tiny-tag">COMING SOON</span>
                     </button>
-                    
+
                     <button id="btn-logs" class="menu-item">
                         <span class="icon">≡</span> UPDATE LOGS
                     </button>
-                    
+
                     <button id="btn-settings" class="menu-item">
                         <span class="icon">☼</span> SETTINGS
                     </button>
@@ -74,142 +76,142 @@
         </div>
 
         <div id="settings-modal" class="sub-menu hidden">
-    <div class="settings-window cyberpunk-panel">
-        
-        <div class="window-header">
-            <span>SYSTEM_CONFIGURATION</span>
-            <button id="close-settings" class="close-btn">X</button>
-        </div>
+            <div class="settings-window cyberpunk-panel">
 
-        <div class="settings-layout">
-            <div class="settings-sidebar">
-                <button class="tab-btn active" data-tab="audio">AUDIO</button>
-                <button class="tab-btn" data-tab="graphics">VISUALS</button>
-                <button class="tab-btn" data-tab="gameplay">GAMEPLAY</button>
-            </div>
+                <div class="window-header">
+                    <span>SYSTEM_CONFIGURATION</span>
+                    <button id="close-settings" class="close-btn">X</button>
+                </div>
 
-            <div class="settings-viewport">
-                
-                <div id="tab-audio" class="tab-content active">
-                    <div class="setting-group">
-                        <label>MASTER VOLUME</label>
-                        <div class="slider-container">
-                            <input type="range" id="vol-master" min="0" max="100" value="50">
-                            <span class="value-display">50%</span>
+                <div class="settings-layout">
+                    <div class="settings-sidebar">
+                        <button class="tab-btn active" data-tab="audio">AUDIO</button>
+                        <button class="tab-btn" data-tab="graphics">VISUALS</button>
+                        <button class="tab-btn" data-tab="gameplay">GAMEPLAY</button>
+                    </div>
+
+                    <div class="settings-viewport">
+
+                        <div id="tab-audio" class="tab-content active">
+                            <div class="setting-group">
+                                <label>MASTER VOLUME</label>
+                                <div class="slider-container">
+                                    <input type="range" id="vol-master" min="0" max="100" value="50">
+                                    <span class="value-display">50%</span>
+                                </div>
+                            </div>
+                            <div class="setting-group">
+                                <label>SFX VOLUME</label>
+                                <div class="slider-container">
+                                    <input type="range" id="vol-sfx" min="0" max="100" value="80">
+                                    <span class="value-display">80%</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="setting-group">
-                        <label>SFX VOLUME</label>
-                        <div class="slider-container">
-                            <input type="range" id="vol-sfx" min="0" max="100" value="80">
-                            <span class="value-display">80%</span>
+
+                        <div id="tab-graphics" class="tab-content">
+                            <div class="setting-row">
+                                <label>NEON BLOOM</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="opt-bloom" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="setting-row">
+                                <label>PARTICLE EFFECTS</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="opt-particles" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
                         </div>
+
+                        <div id="tab-gameplay" class="tab-content">
+                            <div class="setting-row">
+                                <label>SHOW DAMAGE NUMBERS</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="opt-dmg-nums" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="setting-row">
+                                <label>AUTO-TARGET PRIORITY</label>
+                                <select id="opt-auto-target">
+                                    <option value="first">FIRST</option>
+                                    <option value="strong">STRONGEST</option>
+                                    <option value="weak">WEAKEST</option>
+                                </select>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
-                <div id="tab-graphics" class="tab-content">
-                    <div class="setting-row">
-                        <label>NEON BLOOM</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="opt-bloom" checked>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row">
-                        <label>PARTICLE EFFECTS</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="opt-particles" checked>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
+                <div class="settings-footer">
+                    <button id="btn-save-settings">APPLY CHANGES</button>
                 </div>
-
-                <div id="tab-gameplay" class="tab-content">
-                    <div class="setting-row">
-                        <label>SHOW DAMAGE NUMBERS</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="opt-dmg-nums" checked>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row">
-                        <label>AUTO-TARGET PRIORITY</label>
-                        <select id="opt-auto-target">
-                            <option value="first">FIRST</option>
-                            <option value="strong">STRONGEST</option>
-                            <option value="weak">WEAKEST</option>
-                        </select>
-                    </div>
-                </div>
-
             </div>
         </div>
-
-        <div class="settings-footer">
-            <button id="btn-save-settings">APPLY CHANGES</button>
-        </div>
-    </div>
-</div>
 
         <div id="deployment-overlay" class="sub-menu hidden">
-    <div class="deployment-window">
-        <div class="window-header">
-            <span>SELECT DEPLOYMENT SITE</span>
-            <button id="close-deployment" class="close-btn">CANCEL [ESC]</button>
-        </div>
-        
-        <div class="deployment-content">
-            <div class="map-selection-panel">
-                <h3 class="panel-title">AVAILABLE SECTORS</h3>
-                <div id="map-list" class="map-list">
-                    <button class="map-btn active">
-                        <span class="map-name">SECTOR ALPHA</span>
-                        <span class="map-diff" style="color: #00f3ff;">NORMAL</span>
-                    </button>
-                    <button class="map-btn">
-                        <span class="map-name">SECTOR BETA</span>
-                        <span class="map-diff" style="color: #ff9f43;">HARD</span>
-                    </button>
-                    <button class="map-btn">
-                        <span class="map-name">SECTOR GAMMA</span>
-                        <span class="map-diff" style="color: #ff0055;">EXTREME</span>
-                    </button>
-                    <button class="map-btn">
-                        <span class="map-name">SECTOR DELTA</span>
-                        <span class="map-diff" style="color: #ff00ff;">INSANE</span>
-                    </button>
-                    <button class="map-btn">
-                        <span class="map-name">SECTOR EPSILON</span>
-                        <span class="map-diff" style="color: #ff0000;">OMEGA</span>
-                    </button>
+            <div class="deployment-window">
+                <div class="window-header">
+                    <span>SELECT DEPLOYMENT SITE</span>
+                    <button id="close-deployment" class="close-btn">CANCEL [ESC]</button>
                 </div>
-            </div>
 
-            <div class="mission-briefing-panel">
-                <h3 class="panel-title">MISSION BRIEFING</h3>
-                
-                <div id="selected-map-details" class="briefing-content hidden">
-                    <div class="briefing-header">
-                        <h2 id="briefing-title">SECTOR NAME</h2>
-                        <div class="briefing-stats">
-                            <span class="stat-badge easy" id="briefing-difficulty">EASY</span>
-                            <span class="stat-badge multiplier" id="briefing-multiplier">x1.00 REWARD</span>
+                <div class="deployment-content">
+                    <div class="map-selection-panel">
+                        <h3 class="panel-title">AVAILABLE SECTORS</h3>
+                        <div id="map-list" class="map-list">
+                            <button class="map-btn active">
+                                <span class="map-name">SECTOR ALPHA</span>
+                                <span class="map-diff" style="color: #00f3ff;">NORMAL</span>
+                            </button>
+                            <button class="map-btn">
+                                <span class="map-name">SECTOR BETA</span>
+                                <span class="map-diff" style="color: #ff9f43;">HARD</span>
+                            </button>
+                            <button class="map-btn">
+                                <span class="map-name">SECTOR GAMMA</span>
+                                <span class="map-diff" style="color: #ff0055;">EXTREME</span>
+                            </button>
+                            <button class="map-btn">
+                                <span class="map-name">SECTOR DELTA</span>
+                                <span class="map-diff" style="color: #ff00ff;">INSANE</span>
+                            </button>
+                            <button class="map-btn">
+                                <span class="map-name">SECTOR EPSILON</span>
+                                <span class="map-diff" style="color: #ff0000;">OMEGA</span>
+                            </button>
                         </div>
                     </div>
-                    <p id="briefing-text" class="briefing-text">Select a sector to view details.</p>
-                    
-                    <button id="btn-deploy" class="deploy-btn" disabled>
-                        CONFIRM DEPLOYMENT
-                    </button>
-                </div>
 
-                <div id="no-selection-placeholder" class="briefing-content">
-                    <p class="placeholder-text">&lt; AWAITING SECTOR SELECTION &gt;</p>
-                </div> 
-            </div> 
-        </div> 
-    </div>
-</div>
+                    <div class="mission-briefing-panel">
+                        <h3 class="panel-title">MISSION BRIEFING</h3>
+
+                        <div id="selected-map-details" class="briefing-content hidden">
+                            <div class="briefing-header">
+                                <h2 id="briefing-title">SECTOR NAME</h2>
+                                <div class="briefing-stats">
+                                    <span class="stat-badge easy" id="briefing-difficulty">EASY</span>
+                                    <span class="stat-badge multiplier" id="briefing-multiplier">x1.00 REWARD</span>
+                                </div>
+                            </div>
+                            <p id="briefing-text" class="briefing-text">Select a sector to view details.</p>
+
+                            <button id="btn-deploy" class="deploy-btn" disabled>
+                                CONFIRM DEPLOYMENT
+                            </button>
+                        </div>
+
+                        <div id="no-selection-placeholder" class="briefing-content">
+                            <p class="placeholder-text">&lt; AWAITING SECTOR SELECTION &gt;</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <button id="btn-toggle-build" class="hud-btn-icon hidden">
             BUILD
@@ -221,7 +223,7 @@
                 <div class="res-item">LIVES: <span id="res-lives">20</span></div>
                 <div class="res-item">WAVE: <span id="res-wave">1</span></div>
             </div>
-            
+
             <div class="wave-controls">
                 <button id="btn-start-wave" class="wave-btn">INITIALIZE WAVE 1</button>
                 <button id="btn-skip-wave" class="wave-btn hidden">
@@ -237,10 +239,10 @@
 
                 <div id="inspect-menu" class="hidden">
                     <h3 class="panel-header" id="inspect-name">TOWER NAME</h3>
-                    
+
                     <div class="inspect-stats" id="inspect-stats">
-                        </div>
-                    
+                    </div>
+
                     <div class="action-buttons">
                         <button id="btn-upgrade" class="hud-btn upgrade">
                             UPGRADE <span id="upgrade-cost">(150)</span>
@@ -258,9 +260,19 @@
                     </div>
                 </div>
             </div>
+            <!-- PAUSE MENU -->
+            <div id="pause-menu" class="sub-menu hidden">
+                <div class="pause-window">
+                    <h2 class="pause-title">SYSTEM PAUSED</h2>
+                    <div class="pause-buttons">
+                        <button id="btn-resume" class="menu-item">RESUME</button>
+                        <button id="btn-exit" class="menu-item exit-btn">EXIT OPERATION</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-    </div> 
+    </div>
     <div id="end-screen" class="hidden">
         <div class="end-card">
             <h1 id="end-title">GAME OVER</h1>
@@ -268,10 +280,11 @@
                 <p id="end-reason">BASE DESTROYED</p>
                 <p>WAVES CLEARED: <span id="end-waves">0</span></p>
             </div>
-            <button id="btn-return-menu" class="menu-btn">RETURN TO MENU</button>
+            <button id="btn-return-menu" class="menu-btn exit-btn">RETURN TO MENU</button>
         </div>
     </div>
-    
+
     <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

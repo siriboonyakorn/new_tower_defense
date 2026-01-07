@@ -9,36 +9,73 @@ const WAVE_CONFIGS = {
     'sector5': { count: 40, difficulty: 5.0, startReward: 300 }  // Omega
 };
 
-// 2. A Helper function to pick enemy types based on wave number
-function getEnemyType(waveNum, totalWaves) {
-    const progress = waveNum / totalWaves; // 0.0 to 1.0
-    
-    // Simple logic: As progress goes up, spawn harder enemies
-    if (progress < 0.2) return 'SCOUT';      // Early game
-    if (progress < 0.4) return 'SOLDIER';    // Mid-early
-    if (progress < 0.6) return 'TANK';       // Mid game
-    if (progress < 0.8) return 'HEAVY';      // Late game
-    if (progress < 0.9) return 'BOSS';       // Very late
-    return 'BOSS_MEGA';                      // End game
+// 2. Helper to get a mixed composition
+function getWaveComposition(waveNum, totalWaves, count) {
+    const progress = waveNum / totalWaves;
+    let composition = [];
+
+    // Helper to add multiple enemies
+    const add = (type, amount) => {
+        for (let k = 0; k < amount; k++) composition.push(type);
+    };
+
+    if (progress < 0.15) {
+        // Early Game: Pure Scouts
+        add('SCOUT', count);
+    }
+    else if (progress < 0.35) {
+        // Mid-Early: Mix Scouts & Soldiers
+        const soldiers = Math.floor(count * 0.3); // 30% Soldiers
+        add('SOLDIER', soldiers);
+        add('SCOUT', count - soldiers);
+    }
+    else if (progress < 0.55) {
+        // Mid Game: Soldiers & Tanks
+        const tanks = Math.floor(count * 0.2);
+        const soldiers = count - tanks;
+        add('TANK', tanks);
+        add('SOLDIER', soldiers);
+    }
+    else if (progress < 0.75) {
+        // Late Game: Mix of Heavies, Tanks, Soldiers
+        const heavies = Math.floor(count * 0.1);
+        const tanks = Math.floor(count * 0.4);
+        add('HEAVY', heavies);
+        add('TANK', tanks);
+        add('SOLDIER', count - heavies - tanks);
+    }
+    else {
+        // End Game: BOSSES and HEAVIES
+        const bosses = Math.floor(waveNum / 10); // 1 Boss every 10 waves (ish)
+        const ultra = progress > 0.9 ? 1 : 0;
+
+        if (ultra) add('BOSS_MEGA', 1);
+        else if (bosses > 0) add('BOSS', bosses);
+
+        const remaining = count - bosses - ultra;
+        add('HEAVY', remaining);
+    }
+
+    // Shuffle array for randomness in spawn order
+    return composition.sort(() => Math.random() - 0.5);
 }
 
 // 3. The Generator Function
 function generateWaves(config) {
     let waves = [];
     for (let i = 1; i <= config.count; i++) {
-        const type = getEnemyType(i, config.count);
-        
+
         // Count increases slightly every wave
-        const enemyCount = Math.floor(5 + (i * 1.5)); 
-        
+        const enemyCount = Math.floor(5 + (i * 1.5));
+
         // Reward increases with difficulty
         const reward = Math.floor(config.startReward + (i * 10 * config.difficulty));
 
         waves.push({
             waveNumber: i,
-            type: type,
-            count: enemyCount,
-            interval: 1000 - (i * 10), // Spawn faster later
+            composition: getWaveComposition(i, config.count, enemyCount),
+            count: enemyCount, // Kept for reference, but composition.length is truth
+            interval: Math.max(200, 1000 - (i * 15)), // Cap speed at 200ms
             reward: reward
         });
     }

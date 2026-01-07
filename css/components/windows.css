@@ -121,3 +121,207 @@
         transform: translateY(0);
     }
 }
+
+/* NEW: SHARED WINDOW STYLES (Headers & Close Buttons) */
+.window-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid #333;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-blue);
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+}
+
+.close-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #666;
+    padding: 5px 15px;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 0.8rem;
+}
+
+.close-btn:hover {
+    border-color: var(--neon-blue);
+    color: white;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+/* NEW: DEPLOYMENT WINDOW STYLES */
+.deployment-window {
+    width: 900px;
+    height: 600px;
+    background: rgba(8, 10, 15, 0.98);
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.1), inset 0 0 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    /* Angled corners similar to settings but maybe distinct */
+    clip-path: polygon(20px 0, 100% 0,
+            100% calc(100% - 20px), calc(100% - 20px) 100%,
+            0 100%, 0 20px);
+    animation: window-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+}
+
+/* Grid background for deployment window */
+.deployment-window::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.deployment-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    padding: 20px;
+    gap: 20px;
+}
+
+.map-selection-panel {
+    width: 300px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mission-briefing-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-title {
+    font-family: 'Orbitron', sans-serif;
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+}
+
+/* Map List Items */
+.map-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.map-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #333;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #aaa;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.map-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #666;
+    color: white;
+}
+
+.map-btn.active {
+    border-color: var(--neon-blue);
+    background: rgba(0, 243, 255, 0.1);
+    color: white;
+    box-shadow: inset 3px 0 0 var(--neon-blue);
+}
+
+.map-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.map-diff {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    opacity: 0.8;
+}
+
+/* Briefing Styles */
+.briefing-content {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.briefing-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+}
+
+#briefing-title {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-blue);
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.briefing-stats {
+    display: flex;
+    gap: 10px;
+}
+
+.stat-badge {
+    background: #222;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    color: #aaa;
+    border: 1px solid #444;
+}
+
+.stat-badge.easy {
+    color: #00ff66;
+    border-color: #00ff66;
+}
+
+.stat-badge.multiplier {
+    color: #ffd700;
+    border-color: #ffd700;
+}
+
+.briefing-text {
+    line-height: 1.6;
+    color: #ccc;
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.placeholder-text {
+    color: #555;
+    text-align: center;
+    margin-top: 100px;
+    font-family: 'Orbitron', sans-serif;
+}

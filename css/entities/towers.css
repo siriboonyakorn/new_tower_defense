@@ -18,14 +18,14 @@
     font-weight: bold;
 }
 
-.hud-btn.upgrade { 
-    background: var(--neon-green); 
-    color: #000; 
+.hud-btn.upgrade {
+    background: var(--neon-green);
+    color: #fff;
 }
 
-.hud-btn.sell { 
-    background: var(--neon-red); 
-    color: #fff; 
+.hud-btn.sell {
+    background: var(--neon-red);
+    color: #fff;
 }
 
 .hud-btn.target {

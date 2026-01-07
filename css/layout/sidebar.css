@@ -1,6 +1,6 @@
 #btn-toggle-build {
     position: absolute;
-    top: 70px; 
+    top: 70px;
     right: 20px;
     width: 100px;
     height: 40px;
@@ -10,11 +10,12 @@
     font-family: 'Orbitron', sans-serif;
     font-weight: bold;
     cursor: pointer;
-    z-index: 50; 
+    z-index: 50;
     clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
     transition: all 0.2s;
-    pointer-events: auto; 
-    display: none !important; /* From later in file */
+    pointer-events: auto;
+    display: none !important;
+    /* From later in file */
 }
 
 #btn-toggle-build:hover {
@@ -35,13 +36,13 @@
     display: flex;
     flex-direction: column;
     z-index: 100;
-    pointer-events: auto; 
-    transform: none !important; 
+    pointer-events: auto;
+    transform: none !important;
     transition: none;
 }
 
 .side-panel.open {
-    right: 0; 
+    right: 0;
 }
 
 .panel-header {
@@ -53,17 +54,41 @@
     text-align: center;
 }
 
+.inspect-stats {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #333;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    color: #aaa;
+    font-size: 0.85rem;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.stat-row span:last-child {
+    color: var(--neon-blue);
+    font-weight: bold;
+}
+
 .tower-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr; 
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-top: 20px;
 }
+
 /* Also found later in file */
 .tower-grid {
-    grid-template-columns: 1fr; /* Single column stack */
-    overflow-y: auto; 
-    padding-right: 5px; 
+    grid-template-columns: 1fr;
+    /* Single column stack */
+    overflow-y: auto;
+    padding-right: 5px;
 }
 
 .menu-screen:not(.active) {

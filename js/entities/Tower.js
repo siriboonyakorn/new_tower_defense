@@ -7,7 +7,7 @@ export class Tower {
         this.x = x;
         this.y = y;
         this.type = type;
-        let cd = type.cooldown || 1000; 
+        let cd = type.cooldown || 1000;
         if (cd < 10) cd *= 1000;
         // Stats
         this.level = 1;
@@ -15,12 +15,13 @@ export class Tower {
         this.damage = type.damage;
         this.cooldown = type.cooldown;
         this.lastShot = 0;
-        
+
         // Economy & Targeting
         this.cost = type.cost;
         this.totalInvested = type.cost; // Tracks total money spent for selling
         this.targetMode = 'FIRST'; // Default mode
         this.targetModes = ['FIRST', 'LAST', 'STRONG', 'WEAK'];
+        this.rotation = -Math.PI / 2; // Default facing UP
     }
 
     // --- UPGRADE SYSTEM ---
@@ -40,7 +41,7 @@ export class Tower {
         this.range *= 1.15;  // +15% Range
         this.damage *= 1.25; // +25% Damage
         this.cooldown *= 0.95; // -5% Cooldown (Faster)
-        
+
         // Update Value
         this.totalInvested += this.getUpgradeCost();
     }
@@ -61,10 +62,10 @@ export class Tower {
 
         if (this.type.name.toUpperCase().includes('BARRACKS')) {
             this.updateBarracks();
-            return; 
+            return;
         }
 
-        if (Math.random() < 0.01) console.log("Tower Debug:", this.type.name, this.cooldown); 
+        if (Math.random() < 0.01) console.log("Tower Debug:", this.type.name, this.cooldown);
         const now = Date.now();
         // Cooldown Check
         if (now - this.lastShot < this.cooldown) return;
@@ -73,14 +74,14 @@ export class Tower {
         const enemiesInRange = this.game.enemies.filter(e => {
             const dx = e.x - this.x;
             const dy = e.y - this.y;
-            return Math.sqrt(dx*dx + dy*dy) <= this.range;
+            return Math.sqrt(dx * dx + dy * dy) <= this.range;
         });
 
         if (enemiesInRange.length === 0) return;
 
         // 2. Sort enemies based on Target Mode
         let target = null;
-        
+
         if (this.targetMode === 'FIRST') {
             // Highest pathIndex = furthest along path
             target = enemiesInRange.sort((a, b) => b.pathIndex - a.pathIndex)[0];
@@ -96,24 +97,31 @@ export class Tower {
 
         // 3. Fire!
         if (target) {
+            // ROTATION LOGIC
+            const dx = target.x - this.x;
+            const dy = target.y - this.y;
+            // Subtract PI/2 because canvas 0 is usually "Right", but we often draw facing "Up" or handle it in renderer
+            // Actually, let's store the raw angle and handle offset in Renderer
+            this.rotation = Math.atan2(dy, dx);
+
             this.shoot(target);
             this.lastShot = now;
         }
     }
-    
+
 
     shoot(target) {
         // Create the projectile
         this.game.projectiles.push({
-            x: this.x, 
+            x: this.x,
             y: this.y,
             target: target,
             speed: 12, // How fast the bullet flies
             damage: this.damage,
             color: this.type.color || '#ffff00', // Default to yellow if missing
-            
+
             // --- THE MISSING LOGIC ---
-            update: function() {
+            update: function () {
                 // 1. Check if target is dead or gone (prevent crash)
                 if (!this.target || this.target.hp <= 0) {
                     this.markedForDeletion = true;
@@ -123,7 +131,7 @@ export class Tower {
                 // 2. Calculate distance to target
                 const dx = this.target.x - this.x;
                 const dy = this.target.y - this.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
                 // 3. Hit Detection
                 if (dist < this.speed) {
@@ -136,14 +144,14 @@ export class Tower {
                     this.y += (dy / dist) * this.speed;
                 }
             },
-            
+
             markedForDeletion: false
         });
     }
     updateBarracks() {
         // 1. Check if we need to spawn
         // Let's say a Barracks keeps 3 troops alive.
-        
+
         // Filter troops that belong to THIS tower
         // (We attach an 'owner' tag to the troop to track this)
         const myTroops = this.game.troops.filter(t => t.owner === this);
@@ -165,14 +173,14 @@ export class Tower {
 
         // 2. Calculate pixel coordinates (assuming grid size 60 or tileSize)
         // We use the same math as the game engine uses for enemies
-        const startX = startNode.x * this.game.tileSize + this.game.tileSize/2;
-        const startY = startNode.y * this.game.tileSize + this.game.tileSize/2;
+        const startX = startNode.x * this.game.tileSize + this.game.tileSize / 2;
+        const startY = startNode.y * this.game.tileSize + this.game.tileSize / 2;
 
         // 3. Create the Kamikaze Troop at the BASE
         const troop = new Troop(this.game, startX, startY);
-        
+
         // 4. Tell the troop where to start in the path array (The End)
-        troop.pathIndex = pathEndIndex; 
+        troop.pathIndex = pathEndIndex;
         troop.owner = this;
 
         this.game.troops.push(troop);

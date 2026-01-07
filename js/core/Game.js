@@ -13,11 +13,11 @@ export class Game {
         this.ctx = this.canvas.getContext('2d');
         this.levelId = levelId;
 
-        this.waves = LEVEL_WAVES[this.levelId] || LEVEL_WAVES['sector1']; 
+        this.waves = LEVEL_WAVES[this.levelId] || LEVEL_WAVES['sector1'];
         console.log(`Loaded ${this.waves.length} waves for ${this.levelId}`);
 
         console.log("Loading Level ID:", this.levelId);
-        
+
         // Dimensions
         this.width = window.innerWidth;
         this.height = window.innerHeight;
@@ -29,21 +29,22 @@ export class Game {
         this.isRunning = true;
         this.credits = 600;
         this.lives = 20;
-        
+
         // Wave System
-        this.waveIndex = 0; 
+        this.waveIndex = 0;
         this.isWaveActive = false;
-        this.waveTimer = 0; 
+        this.waveTimer = 0;
         this.enemiesRemainingToSpawn = 0;
-        this.spawnTimer = 0;
         this.currentWaveConfig = null;
+        this.spawnQueue = [];
+        this.isPaused = false; // Pause Flag// New mixed wave queue
 
         // Entities
         this.towers = [];
         this.enemies = [];
-        this.projectiles = []; 
+        this.projectiles = [];
         this.troops = [];
-        
+
         // Input
         this.mouse = { x: 0, y: 0 };
         this.hoveredTile = { x: 0, y: 0 };
@@ -54,7 +55,7 @@ export class Game {
         this.setupPath();
         this.setupInputs();
         this.setupUI();
-        
+
         // Renderer
         this.renderer = new Renderer(this);
 
@@ -69,8 +70,12 @@ export class Game {
     // --- GAME LOOP ---
     loop = () => {
         if (!this.isRunning) return;
-        this.update();
-        this.renderer.draw(); 
+
+        if (!this.isPaused) {
+            this.update();
+        }
+
+        this.renderer.draw();
         requestAnimationFrame(this.loop);
     }
 
@@ -85,17 +90,17 @@ export class Game {
                     this.spawnEnemy();
                     this.spawnTimer = 0;
                 }
-            
-            // 2. CHECK: Are all enemies dead?
+
+                // 2. CHECK: Are all enemies dead?
             } else if (this.enemies.length === 0) {
-                
+
                 // Turn off the current wave flag so we don't trigger this 60 times a second
-                this.isWaveActive = false; 
+                this.isWaveActive = false;
 
                 // Check if we have more waves left
                 if (this.waveIndex < this.waves.length) {
                     console.log("Wave Cleared! Next wave incoming...");
-                    
+
                     // HIDE the buttons so user doesn't click them by accident
                     const startBtn = document.getElementById('btn-start-wave');
                     if (startBtn) startBtn.classList.add('hidden');
@@ -103,15 +108,24 @@ export class Game {
                     // AUTO-START NEXT WAVE (with a 2-second breather)
                     setTimeout(() => {
                         this.startNextWave();
-                    }, 2000); 
+                    }, 2000);
 
                 } else {
                     // No more waves? YOU WIN!
                     this.handleVictory();
                 }
             }
-            
-            // 3. Skip Button Logic (Optional: Hide it if wave is almost done)
+
+            // 3. Skip Button Logic (Show if wave is almost done)
+            const skipBtn = document.getElementById('btn-skip-wave');
+            if (skipBtn) {
+                if (this.spawnQueue.length === 0 && this.enemies.length < 5 && this.enemies.length > 0) {
+                    skipBtn.classList.remove('hidden');
+                } else {
+                    skipBtn.classList.add('hidden');
+                }
+            }
+
             this.waveTimer++;
         }
 
@@ -145,11 +159,11 @@ export class Game {
             const target = this.path[enemy.pathIndex + 1];
             if (!target) return;
 
-            const tx = target.x * this.tileSize + this.tileSize/2;
-            const ty = target.y * this.tileSize + this.tileSize/2;
+            const tx = target.x * this.tileSize + this.tileSize / 2;
+            const ty = target.y * this.tileSize + this.tileSize / 2;
             const dx = tx - enemy.x;
             const dy = ty - enemy.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < enemy.speed) {
                 enemy.x = tx; enemy.y = ty; enemy.pathIndex++;
@@ -168,13 +182,13 @@ export class Game {
 
                     // B. Move Enemy Logic
                     const target = this.path[enemy.pathIndex + 1];
-                    
+
                     // If no target, they reached the end (Base Hit!)
                     if (!target) {
                         this.lives--;             // Lose a life
                         this.updateResourceDisplay(); // Update HTML
                         this.enemies.splice(index, 1); // Remove enemy
-                        
+
                         // Optional: Check Game Over
                         if (this.lives <= 0) {
                             alert("GAME OVER");
@@ -183,18 +197,18 @@ export class Game {
                         return; // Stop here for this enemy
                     }
 
-                    const tx = target.x * this.tileSize + this.tileSize/2;
-                    const ty = target.y * this.tileSize + this.tileSize/2;
+                    const tx = target.x * this.tileSize + this.tileSize / 2;
+                    const ty = target.y * this.tileSize + this.tileSize / 2;
                     const dx = tx - enemy.x;
                     const dy = ty - enemy.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const dist = Math.sqrt(dx * dx + dy * dy);
 
                     if (dist < enemy.speed) {
                         // Snap to grid and move to next waypoint
-                        enemy.x = tx; 
-                        enemy.y = ty; 
+                        enemy.x = tx;
+                        enemy.y = ty;
                         enemy.pathIndex++;
-                        
+
                         // Check if this was the FINAL waypoint
                         if (enemy.pathIndex >= this.path.length - 1) {
                             this.handleBaseHit(i);
@@ -213,9 +227,10 @@ export class Game {
     }
 
     spawnEnemy() {
-        // 1. Get the enemy type string (e.g., 'SCOUT')
-        const typeKey = this.currentWaveConfig.type;
-        
+        // 1. Get the next enemy type from the queue
+        if (this.spawnQueue.length === 0) return;
+        const typeKey = this.spawnQueue.shift();
+
         // 2. Look it up in the ENEMIES object
         const typeConfig = ENEMIES[typeKey];
 
@@ -230,8 +245,8 @@ export class Game {
         const enemy = {
             id: Math.random(),
             type: typeConfig, // This is now safe
-            x: this.path[0].x * this.tileSize + this.tileSize/2,
-            y: this.path[0].y * this.tileSize + this.tileSize/2,
+            x: this.path[0].x * this.tileSize + this.tileSize / 2,
+            y: this.path[0].y * this.tileSize + this.tileSize / 2,
             pathIndex: 0,
             hp: typeConfig.hp,
             maxHp: typeConfig.hp,
@@ -274,7 +289,12 @@ export class Game {
         }
 
         this.currentWaveConfig = this.waves[this.waveIndex];
-        this.enemiesRemainingToSpawn = this.currentWaveConfig.count;
+
+        // --- MIXED WAVE LOGIC ---
+        // Copy the composition array to our queue
+        this.spawnQueue = [...this.currentWaveConfig.composition];
+        this.enemiesRemainingToSpawn = this.spawnQueue.length;
+
         this.spawnTimer = 0;
         this.isWaveActive = true;
         this.waveTimer = 0;
@@ -297,7 +317,7 @@ export class Game {
         // -----------------------------
         this.updateResourceDisplay();
         this.waveIndex++;
-        
+
         document.getElementById('res-wave').innerText = this.waveIndex;
         document.getElementById('btn-start-wave').classList.add('hidden');
         document.getElementById('btn-skip-wave').classList.add('hidden');
@@ -323,17 +343,17 @@ export class Game {
         const returnBtn = document.getElementById('btn-return-menu');
         if (returnBtn) {
             returnBtn.onclick = () => {
-                window.location.reload(); // Reloads page to go back to Menu
+                this.exitToMenu(); // Use internal exit logic instead of reload
             };
         }
         // Wire up Wave Buttons
         if (startBtn) startBtn.onclick = () => this.startNextWave();
         if (skipBtn) skipBtn.onclick = () => this.startNextWave();
-        
+
         // --- TOWER GRID GENERATION ---
         const gridContainer = document.querySelector('.tower-grid');
         gridContainer.innerHTML = '';
-        
+
         Object.values(TOWER_TYPES).forEach(tower => {
             const btn = document.createElement('div');
             btn.className = 'build-btn';
@@ -344,10 +364,10 @@ export class Game {
                     <span class="cost">${tower.cost}</span>
                 </div>
             `;
-            
+
             btn.onclick = (e) => {
                 e.stopPropagation();
-                
+
                 // Toggle Selection
                 if (this.selectedTowerType === tower) {
                     this.selectedTowerType = null;
@@ -358,14 +378,14 @@ export class Game {
                     // Select this one
                     this.selectedTowerType = tower;
                     btn.classList.add('active');
-                    
+
                     // IMPORTANT: If we were inspecting a tower, switch back to build mode
-                    this.deselectTower(); 
+                    this.deselectTower();
                 }
             };
             gridContainer.appendChild(btn);
         });
-        
+
         // --- REMOVED: The code that hid/showed the side panel ---
         // (We don't need the buildBtn.onclick logic anymore)
     }
@@ -375,8 +395,10 @@ export class Game {
             const rect = this.canvas.getBoundingClientRect();
             this.mouse.x = e.clientX - rect.left;
             this.mouse.y = e.clientY - rect.top;
-            this.hoveredTile.x = Math.floor(this.mouse.x / this.tileSize) * this.tileSize;
-            this.hoveredTile.y = Math.floor(this.mouse.y / this.tileSize) * this.tileSize;
+
+            // FREE PLACEMENT: Center tower on mouse
+            this.hoveredTile.x = this.mouse.x - this.tileSize / 2;
+            this.hoveredTile.y = this.mouse.y - this.tileSize / 2;
         });
 
         this.canvas.addEventListener('click', () => {
@@ -390,7 +412,7 @@ export class Game {
             const clickedTower = this.towers.find(t => {
                 const dx = t.x - this.mouse.x;
                 const dy = t.y - this.mouse.y;
-                return Math.sqrt(dx*dx + dy*dy) < this.tileSize/2;
+                return Math.sqrt(dx * dx + dy * dy) < this.tileSize / 2;
             });
 
             if (clickedTower) {
@@ -401,6 +423,7 @@ export class Game {
         });
 
         this.setupInspectListeners();
+        this.setupPauseListeners();
 
         this.canvas.addEventListener('click', () => {
             if (this.selectedTowerType) this.placeTower();
@@ -410,26 +433,89 @@ export class Game {
     updateResourceDisplay() {
         const creditEl = document.getElementById('res-credits');
         const livesEl = document.getElementById('res-lives');
-        
+
         if (creditEl) creditEl.innerText = this.credits;
         if (livesEl) livesEl.innerText = this.lives;
     }
 
+    checkPlacement(x, y) {
+        // 1. Check Limits
+        if (x < 0 || x > this.width || y < 0 || y > this.height) return false;
+
+        // 2. Check overlap with EXISTING TOWERS
+        // We use a simple radius check (tileSize/2)
+        const towerOverlap = this.towers.some(t => {
+            const dx = t.x - x;
+            const dy = t.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < this.tileSize; // Overlap if closer than 1 tile
+        });
+        if (towerOverlap) return false;
+
+        // 3. Check overlap with PATH
+        // We need point-to-segment distance 
+        const r = this.tileSize / 2; // Radius of tower
+
+        for (let i = 0; i < this.path.length - 1; i++) {
+            const p1 = { x: this.path[i].x * this.tileSize + r, y: this.path[i].y * this.tileSize + r };
+            const p2 = { x: this.path[i + 1].x * this.tileSize + r, y: this.path[i + 1].y * this.tileSize + r };
+
+            if (this.pointToSegmentDistance(x, y, p1.x, p1.y, p2.x, p2.y) < r) {
+                return false; // Too close to path
+            }
+        }
+
+        return true;
+    }
+
+    pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+        const C = x2 - x1;
+        const D = y2 - y1;
+        const dot = (px - x1) * C + (py - y1) * D;
+        const len_sq = C * C + D * D;
+        let param = -1;
+
+        if (len_sq !== 0) param = dot / len_sq;
+
+        let xx, yy;
+
+        if (param < 0) {
+            xx = x1; yy = y1;
+        } else if (param > 1) {
+            xx = x2; yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        const dx = px - xx;
+        const dy = py - yy;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
     placeTower() {
-         if (this.credits < this.selectedTowerType.cost) return;
-         
-         const newTower = new Tower(
-             this, 
-             this.hoveredTile.x + this.tileSize/2,
-             this.hoveredTile.y + this.tileSize/2,
-             this.selectedTowerType
-         );
+        if (this.credits < this.selectedTowerType.cost) return;
+
+        const tx = this.hoveredTile.x + this.tileSize / 2;
+        const ty = this.hoveredTile.y + this.tileSize / 2;
+
+        // Validate Placement
+        if (!this.checkPlacement(tx, ty)) {
+            console.log("Invalid Placement!");
+            // Optional: Play error sound
+            return;
+        }
+
+        const newTower = new Tower(
+            this,
+            tx, ty,
+            this.selectedTowerType
+        );
 
         this.towers.push(newTower);
         this.credits -= this.selectedTowerType.cost;
-        
+
         this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
-        
+
         // Manual Deselect Logic
         this.selectedTowerType = null;
         document.querySelectorAll('.build-btn').forEach(btn => btn.classList.remove('active'));
@@ -440,14 +526,14 @@ export class Game {
     handleBaseHit(enemyIndex) {
         // 1. Lose Life
         this.lives--;
-        
+
         // 2. Update UI
         this.updateResourceDisplay();
 
         // 3. Visual Feedback (Screen Flash Red)
         document.body.style.boxShadow = "inset 0 0 50px rgba(255, 0, 0, 0.5)";
         setTimeout(() => {
-            document.body.style.boxShadow = ""; 
+            document.body.style.boxShadow = "";
         }, 100);
 
         // 4. Remove Enemy
@@ -461,7 +547,7 @@ export class Game {
 
     gameOver() {
         this.isRunning = false; // Stop game loop
-        
+
         const screen = document.getElementById('end-screen');
         const card = document.querySelector('.end-card');
         const title = document.getElementById('end-title');
@@ -472,21 +558,21 @@ export class Game {
         title.innerText = "SYSTEM FAILURE";
         reason.innerText = "BASE DESTROYED";
         waves.innerText = `${this.waveIndex} / ${this.waves.length}`;
-        
+
         // 2. Set Style (Red)
         card.className = 'end-card defeat';
-        
+
         // 3. Show Screen
         screen.classList.remove('hidden');
     }
 
     selectTower(tower) {
         this.selectedTower = tower;
-        
+
         // UI Swap: Hide Build, Show Inspect
         document.getElementById('build-menu').classList.add('hidden');
         document.getElementById('inspect-menu').classList.remove('hidden');
-        
+
         // Open the side panel if it's closed
         document.querySelector('.side-panel').classList.add('open');
 
@@ -495,11 +581,11 @@ export class Game {
 
     deselectTower() {
         this.selectedTower = null;
-        
+
         // 1. Show Build Menu
         const buildMenu = document.getElementById('build-menu');
         const inspectMenu = document.getElementById('inspect-menu');
-        
+
         if (buildMenu) buildMenu.classList.remove('hidden');
         if (inspectMenu) inspectMenu.classList.add('hidden');
 
@@ -515,21 +601,22 @@ export class Game {
         document.getElementById('inspect-stats').innerHTML = `
             <div class="stat-row"><span>DMG:</span> <span>${Math.floor(t.damage)}</span></div>
             <div class="stat-row"><span>RNG:</span> <span>${Math.floor(t.range)}</span></div>
-            <div class="stat-row"><span>SPD:</span> <span>${(1000/t.cooldown).toFixed(1)}/s</span></div>
+            <div class="stat-row"><span>SPD:</span> <span>${(1000 / t.cooldown).toFixed(1)}/s</span></div>
         `;
 
         // 2. Upgrade Button
         const upgBtn = document.getElementById('btn-upgrade');
         const costSpan = document.getElementById('upgrade-cost');
-        
+
         if (t.level >= 5) {
             upgBtn.classList.add('locked');
-            upgBtn.innerText = "MAX LEVEL";
+            upgBtn.innerText = "MAX LEVEL REACHED";
+            upgBtn.style.opacity = "0.5";
         } else {
             upgBtn.classList.remove('locked');
             const cost = t.getUpgradeCost();
             upgBtn.innerHTML = `UPGRADE <span id="upgrade-cost">(${cost})</span>`;
-            
+
             // Visual check if player can afford it
             if (this.credits < cost) upgBtn.style.opacity = '0.5';
             else upgBtn.style.opacity = '1';
@@ -560,11 +647,11 @@ export class Game {
         document.getElementById('btn-sell').onclick = () => {
             if (this.selectedTower) {
                 this.credits += this.selectedTower.getSellValue();
-                
+
                 // Remove from array
                 const index = this.towers.indexOf(this.selectedTower);
                 if (index > -1) this.towers.splice(index, 1);
-                
+
                 this.updateResourceDisplay();
                 this.deselectTower();
             }
@@ -580,5 +667,80 @@ export class Game {
 
         // Deselect / Back
         document.getElementById('btn-deselect').onclick = () => this.deselectTower();
+    }
+
+    setupPauseListeners() {
+        // 1. ESC Key Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // If we have a tower selected, deselect it first
+                if (this.selectedTower || this.selectedTowerType) {
+                    // Let the other listeners handle deselect
+                    return;
+                }
+                this.togglePause();
+            }
+        });
+
+        // 2. Resume Button
+        document.getElementById('btn-resume').onclick = () => {
+            this.togglePause();
+        };
+
+        // 3. Exit Button
+        document.getElementById('btn-exit').onclick = () => {
+            this.exitToMenu();
+        };
+    }
+
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        const menu = document.getElementById('pause-menu');
+
+        if (this.isPaused) {
+            menu.classList.remove('hidden');
+        } else {
+            menu.classList.add('hidden');
+        }
+    }
+
+    exitToMenu() {
+        this.isRunning = false;
+        this.isPaused = false;
+
+        // 1. Hide Game UI
+        document.getElementById('pause-menu').classList.add('hidden');
+        document.getElementById('game-hud').classList.add('hidden');
+        document.getElementById('btn-toggle-build').classList.add('hidden');
+        document.getElementById('end-screen').classList.add('hidden'); // NEW: Hide End Screen
+        document.querySelector('.side-panel').classList.remove('open');
+
+        // 2. Show Main Menu Logic (Reverse Navigation)
+        const mainMenu = document.getElementById('main-menu');
+        const transitionLayer = document.getElementById('transition-layer');
+
+        transitionLayer.classList.add('active');
+
+        setTimeout(() => {
+            if (mainMenu) mainMenu.classList.add('active'); // SHOW MENU
+
+            // 3. FULL ERROR RESET
+            this.enemies = [];
+            this.towers = [];
+            this.projectiles = [];
+            this.credits = 600; // Reset Credits
+            this.lives = 20;    // Reset Lives
+            this.waveIndex = 0; // Reset Wave
+            this.spawnQueue = [];
+            this.isWaveActive = false;
+
+            // Restart Background Scene if available
+            if (window.menuBackground) window.menuBackground.start();
+
+            // Clear the transition
+            setTimeout(() => {
+                transitionLayer.classList.remove('active');
+            }, 600);
+        }, 400);
     }
 }

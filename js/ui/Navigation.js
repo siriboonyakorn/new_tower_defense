@@ -10,40 +10,40 @@ export class Navigation {
 
     // js/ui/Navigation.js
 
-populateMapList() {
-    const mapListContainer = document.getElementById('map-list');
-    if (!mapListContainer) return;
+    populateMapList() {
+        const mapListContainer = document.getElementById('map-list');
+        if (!mapListContainer) return;
 
-    mapListContainer.innerHTML = ''; 
+        mapListContainer.innerHTML = '';
 
-    levels.forEach(level => {
-        const mapCard = document.createElement('div');
-        mapCard.className = 'map-card'; // Changed from map-btn to map-card
-        if (this.selectedLevelId === level.id) mapCard.classList.add('selected');
-        
-        mapCard.innerHTML = `
+        levels.forEach(level => {
+            const mapCard = document.createElement('div');
+            mapCard.className = 'map-card'; // Changed from map-btn to map-card
+            if (this.selectedLevelId === level.id) mapCard.classList.add('selected');
+
+            mapCard.innerHTML = `
             <span class="map-name">${level.name}</span>
             <span class="map-diff" style="color: ${this.getDifficultyColor(level.difficulty)};">
                 ${level.difficulty}
             </span>
         `;
 
-        mapCard.onclick = () => this.selectLevel(level.id);
-        mapListContainer.appendChild(mapCard);
-    });
-}
-
-// Add this helper to give each difficulty a unique color
-getDifficultyColor(diff) {
-    switch(diff) {
-        case 'EASY': return '#00f3ff';   // Cyan
-        case 'NORMAL': return '#00ff00'; // Green
-        case 'HARD': return '#ff9f00';   // Orange
-        case 'INSANE': return '#ff00ff'; // Magenta
-        case 'OMEGA': return '#ff0000';  // Red
-        default: return '#ffffff';
+            mapCard.onclick = () => this.selectLevel(level.id);
+            mapListContainer.appendChild(mapCard);
+        });
     }
-}
+
+    // Add this helper to give each difficulty a unique color
+    getDifficultyColor(diff) {
+        switch (diff) {
+            case 'EASY': return '#00f3ff';   // Cyan
+            case 'NORMAL': return '#00ff00'; // Green
+            case 'HARD': return '#ff9f00';   // Orange
+            case 'INSANE': return '#ff00ff'; // Magenta
+            case 'OMEGA': return '#ff0000';  // Red
+            default: return '#ffffff';
+        }
+    }
 
     selectLevel(id) {
         this.selectedLevelId = id;
@@ -68,7 +68,7 @@ getDifficultyColor(diff) {
 
     closeMenu(overlay) {
         if (!overlay || overlay.classList.contains('hidden')) return;
-        
+
         if (overlay.id === 'deployment-overlay') {
             this.selectedLevelId = null;
             document.querySelectorAll('.map-card').forEach(card => card.classList.remove('selected'));
@@ -88,21 +88,22 @@ getDifficultyColor(diff) {
         const startBtn = document.getElementById('btn-start');
         const logsBtn = document.getElementById('btn-logs');
         const settingsBtn = document.getElementById('btn-settings');
-        
+
         const deploymentOverlay = document.getElementById('deployment-overlay');
         const closeDeployment = document.getElementById('close-deployment');
         const deployBtn = document.getElementById('btn-deploy');
 
         const logsOverlay = document.getElementById('logs-overlay');
-        const settingsOverlay = document.getElementById('settings-overlay');
+        const settingsOverlay = document.getElementById('settings-modal'); // FIXED: Matches HTML ID
         const closeLogs = document.getElementById('close-logs');
         const closeSettings = document.getElementById('close-settings');
-        
+
         if (startBtn) {
             startBtn.onclick = () => {
+                console.log("Start button clicked!"); // Debug log
                 this.closeMenu(logsOverlay);
                 this.closeMenu(settingsOverlay);
-                this.populateMapList(); 
+                this.populateMapList();
                 deploymentOverlay.classList.remove('hidden');
             };
         }
@@ -112,16 +113,16 @@ getDifficultyColor(diff) {
         if (deployBtn) {
             deployBtn.onclick = () => {
                 // 1. Capture the ID RIGHT NOW before any timers start
-                const targetLevelId = this.selectedLevelId; 
+                const targetLevelId = this.selectedLevelId;
 
                 if (targetLevelId) {
-                    console.log("Deploying to:", targetLevelId); 
-                    
+                    console.log("Deploying to:", targetLevelId);
+
                     const transitionLayer = document.getElementById('transition-layer');
                     const mainMenu = document.getElementById('main-menu');
 
                     transitionLayer.classList.add('active');
-                    
+
                     setTimeout(() => {
                         this.closeMenu(deploymentOverlay);
                         if (mainMenu) mainMenu.classList.remove('active');
@@ -139,20 +140,20 @@ getDifficultyColor(diff) {
                             transitionLayer.classList.remove('active');
                         }, 600);
 
-                    }, 400); 
+                    }, 400);
                 }
             };
         }
 
         if (closeDeployment) closeDeployment.onclick = () => this.closeMenu(deploymentOverlay);
 
-        if(logsBtn) logsBtn.onclick = () => logsOverlay.classList.remove('hidden');
-        if(settingsBtn) settingsBtn.onclick = () => settingsOverlay.classList.remove('hidden');
-        if(closeLogs) closeLogs.onclick = () => this.closeMenu(logsOverlay);
-        if(closeSettings) closeSettings.onclick = () => this.closeMenu(settingsOverlay);
+        if (logsBtn) logsBtn.onclick = () => logsOverlay.classList.remove('hidden');
+        if (settingsBtn) settingsBtn.onclick = () => settingsOverlay.classList.remove('hidden');
+        if (closeLogs) closeLogs.onclick = () => this.closeMenu(logsOverlay);
+        if (closeSettings) closeSettings.onclick = () => this.closeMenu(settingsOverlay);
 
         [logsOverlay, settingsOverlay, deploymentOverlay].forEach(overlay => {
-            if(overlay) {
+            if (overlay) {
                 overlay.onclick = (e) => {
                     if (e.target === overlay) this.closeMenu(overlay);
                 };
@@ -166,7 +167,7 @@ getDifficultyColor(diff) {
             });
         });
     }
-    
+
     setupKeyboardListeners() {
         window.addEventListener('keydown', (e) => {
             if (e.key === "Escape" || e.key === "x" || e.key === "X") {

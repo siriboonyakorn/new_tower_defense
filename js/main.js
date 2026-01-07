@@ -2,9 +2,9 @@
 import { Navigation } from './ui/Navigation.js';
 import { SpaceScene } from './scenes/SpaceScene.js';
 import { AudioManager } from './core/AudioManager.js';
-import { Game } from './core/Game.js'; 
+import { Game } from './core/Game.js';
 
-window.menuBackground = null; 
+window.menuBackground = null;
 
 window.onload = () => {
     window.audioManager = new AudioManager();
@@ -34,10 +34,10 @@ window.onload = () => {
 
                 // 3. CRITICAL FIX: Wait for the download to finish!
                 // Even if you click fast, this forces the code to wait until the file is ready.
-                await window.audioManager.musicReady; 
-                
+                await window.audioManager.musicReady;
+
                 // 4. Now it is safe to play
-                window.audioManager.playMusic(); 
+                window.audioManager.playMusic();
             } catch (err) {
                 console.error("Audio initialization failed:", err);
             }
@@ -51,7 +51,7 @@ window.onload = () => {
                     bootScreen.style.display = 'none';
                 }, 1500);
             }
-            
+
             if (mainMenu) mainMenu.classList.add('active');
 
             if (window.menuBackground === null) {
@@ -62,49 +62,49 @@ window.onload = () => {
     }
     // js/main.js - Inside window.onload
 
-        // 1. Block Ctrl + Mouse Wheel Zoom
-        window.addEventListener('wheel', (e) => {
-            if (e.ctrlKey) {
-                e.preventDefault();
-            }
-        }, { passive: false });
+    // 1. Block Ctrl + Mouse Wheel Zoom
+    window.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 
-        // 2. Block Ctrl + Plus, Minus, and Zero keys
-        window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '+' || e.key === '0')) {
-                e.preventDefault();
-            }
-        });
+    // 2. Block Ctrl + Plus, Minus, and Zero keys
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '+' || e.key === '0')) {
+            e.preventDefault();
+        }
+    });
 
     // Inside setupUI() ...
 
-// 1. Settings Tab Logic
-const tabs = document.querySelectorAll('.tab-btn');
-const contents = document.querySelectorAll('.tab-content');
+    // 1. Settings Tab Logic
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
 
-tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        // Remove active class from everything
-        tabs.forEach(t => t.classList.remove('active'));
-        contents.forEach(c => c.classList.remove('active'));
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from everything
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
 
-        // Add active class to clicked tab
-        tab.classList.add('active');
-        
-        // Show corresponding content
-        const targetId = `tab-${tab.dataset.tab}`;
-        document.getElementById(targetId).classList.add('active');
+            // Add active class to clicked tab
+            tab.classList.add('active');
+
+            // Show corresponding content
+            const targetId = `tab-${tab.dataset.tab}`;
+            document.getElementById(targetId).classList.add('active');
+        });
     });
-});
 
-// 2. Slider Number Updates
-document.querySelectorAll('input[type="range"]').forEach(range => {
-    range.addEventListener('input', (e) => {
-        // Find the span next to this slider and update text
-        const display = e.target.parentElement.querySelector('.value-display');
-        if(display) display.innerText = `${e.target.value}%`;
+    // 2. Slider Number Updates
+    document.querySelectorAll('input[type="range"]').forEach(range => {
+        range.addEventListener('input', (e) => {
+            // Find the span next to this slider and update text
+            const display = e.target.parentElement.querySelector('.value-display');
+            if (display) display.innerText = `${e.target.value}%`;
+        });
     });
-});    
 };
 // A safer way to open windows
 function openWindow(id) {
@@ -117,5 +117,3 @@ function openWindow(id) {
 }
 
 // Update your listeners
-settingsBtn.onclick = () => openWindow('settings-window');
-logsBtn.onclick = () => openWindow('logs-window'); // Make sure this ID matches your HTML too!

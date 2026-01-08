@@ -7,7 +7,7 @@ export const TOWER_TYPES = {
         type: 'combat',
         cost: 100,
         range: 150, // Medium range
-        damage: 10,
+        damage: 35,
         cooldown: 800, // Frames between shots (60 = 1 sec)
         color: '#ff0055', // Neon Red
         description: 'Standard defense unit. Balanced range and damage.'
@@ -18,7 +18,7 @@ export const TOWER_TYPES = {
         type: 'combat',
         cost: 250,
         range: 100, // Short range
-        damage: 4,
+        damage: 20,
         cooldown: 100, // Very fast
         color: '#ffcc00', // Neon Yellow
         description: 'High fire rate but low damage. Shreds weak enemies.'
@@ -30,7 +30,7 @@ export const TOWER_TYPES = {
         cost: 500,
         range: 300, // Long range
         damage: 80,
-        cooldown: 1200, // Slow (3 sec)
+        cooldown: 1200, // Slow (3 sec)//1200
         color: '#00ccff', // Neon Cyan
         description: 'Snipers enemies from afar with massive damage.'
     },

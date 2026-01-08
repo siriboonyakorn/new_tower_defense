@@ -313,6 +313,7 @@ export class Renderer {
             ctx.fillRect(-2, -15, 4, 30); // Runway strip
         }
 
+        // Landing Lights (Blinking)
         const blink = Math.sin(time * 10) > 0;
         ctx.fillStyle = blink ? 'red' : '#333';
         ctx.fillRect(-18, -13, 4, 4);

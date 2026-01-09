@@ -67,6 +67,20 @@ export class Game {
         this.loop();
     }
 
+    // --- GAME CONTROL ---
+    stop() {
+        this.isRunning = false;
+        this.hideUI();
+    }
+
+    hideUI() {
+        document.getElementById('game-hud').classList.add('hidden');
+        document.getElementById('btn-toggle-build').classList.add('hidden');
+        document.getElementById('pause-menu').classList.add('hidden');
+        document.getElementById('end-screen').classList.add('hidden');
+        document.querySelector('.side-panel').classList.remove('open');
+    }
+
     // --- GAME LOOP ---
     loop = () => {
         if (!this.isRunning) return;
@@ -705,42 +719,47 @@ export class Game {
     }
 
     exitToMenu() {
-        this.isRunning = false;
-        this.isPaused = false;
+        this.stop(); // Stops game and hides UI
 
-        // 1. Hide Game UI
-        document.getElementById('pause-menu').classList.add('hidden');
-        document.getElementById('game-hud').classList.add('hidden');
-        document.getElementById('btn-toggle-build').classList.add('hidden');
-        document.getElementById('end-screen').classList.add('hidden'); // NEW: Hide End Screen
-        document.querySelector('.side-panel').classList.remove('open');
+        // 1. Force hide boot screen to prevent ghosting glitch
+        const bootScreen = document.getElementById('boot-screen');
+        if (bootScreen) bootScreen.style.display = 'none';
 
         // 2. Show Main Menu Logic (Reverse Navigation)
         const mainMenu = document.getElementById('main-menu');
         const transitionLayer = document.getElementById('transition-layer');
+        const transitionText = transitionLayer.querySelector('.transition-text');
+        const transitionSub = transitionLayer.querySelector('.transition-subtext');
+
+        // Apply Retreat Style
+        transitionLayer.classList.add('retreat');
+        if (transitionText) {
+            transitionText.innerText = "SECTOR WITHDRAWAL";
+            transitionText.setAttribute('data-text', "SECTOR WITHDRAWAL");
+        }
+        if (transitionSub) transitionSub.innerText = "CONNECTION TERMINATED...";
 
         transitionLayer.classList.add('active');
 
         setTimeout(() => {
             if (mainMenu) mainMenu.classList.add('active'); // SHOW MENU
 
-            // 3. FULL ERROR RESET
-            this.enemies = [];
-            this.towers = [];
-            this.projectiles = [];
-            this.credits = 600; // Reset Credits
-            this.lives = 20;    // Reset Lives
-            this.waveIndex = 0; // Reset Wave
-            this.spawnQueue = [];
-            this.isWaveActive = false;
+            // 3. FULL DATA RESET
+            this.enemies = []; this.towers = []; this.projectiles = [];
+            this.credits = 600; this.lives = 20; this.waveIndex = 0;
+            this.spawnQueue = []; this.isWaveActive = false;
 
-            // Restart Background Scene if available
             if (window.menuBackground) window.menuBackground.start();
 
-            // Clear the transition
             setTimeout(() => {
                 transitionLayer.classList.remove('active');
-            }, 600);
-        }, 400);
+                transitionLayer.classList.remove('retreat');
+                if (transitionText) {
+                    transitionText.innerText = "INITIALIZING SECTOR LINK...";
+                    transitionText.setAttribute('data-text', "INITIALIZING SECTOR LINK...");
+                }
+                if (transitionSub) transitionSub.innerText = "ENCRYPTING UPLINK...";
+            }, 800);
+        }, 1400);
     }
 }

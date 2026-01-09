@@ -24,42 +24,55 @@ input[type=range] {
     appearance: none;
     background: transparent;
     height: 20px;
-    width: 150px; /* Fixed width for better alignment */
+    width: 200px;
+    /* Made slightly wider for better control */
     margin: 0;
-}
-
-input[type=range]:focus {
-    outline: none;
+    cursor: pointer;
 }
 
 /* The Track (The Line) */
 input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
-    cursor: pointer;
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    border: none;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-/* The Thumb (The Knob) */
+/* The Thumb (The Orb) */
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     height: 18px;
     width: 18px;
-    background: var(--neon-blue);
-    cursor: pointer;
-    margin-top: -8px; /* Centers knob on track */
+    background: #fff;
+    border: 2px solid var(--neon-blue);
     border-radius: 50%;
-    box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
-    transition: transform 0.1s, background 0.1s;
+    margin-top: -7px;
+    /* Centers thumb on track */
+    box-shadow: 0 0 10px var(--neon-blue), 0 0 20px rgba(0, 243, 255, 0.4);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-input[type=range]::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-    background: #fff;
+input[type=range]:active::-webkit-slider-thumb {
+    transform: scale(1.3);
+    background: var(--neon-blue);
+    box-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-blue);
+}
+
+/* Firefox Support */
+input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+input[type=range]::-moz-range-progress {
+    background: var(--neon-blue);
+    height: 4px;
+    border-radius: 2px;
 }
 
 /* --- 3. TOGGLE SWITCHES (On/Off) --- */
@@ -71,7 +84,7 @@ input[type=range]::-webkit-slider-thumb:hover {
     flex-shrink: 0;
 }
 
-.toggle-switch input { 
+.toggle-switch input {
     opacity: 0;
     width: 0;
     height: 0;
@@ -80,11 +93,15 @@ input[type=range]::-webkit-slider-thumb:hover {
 .slider {
     position: absolute;
     cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: #333;
     transition: .4s;
     border: 1px solid #555;
-    border-radius: 34px; /* Default to round */
+    border-radius: 34px;
+    /* Default to round */
 }
 
 .slider:before {
@@ -99,12 +116,12 @@ input[type=range]::-webkit-slider-thumb:hover {
     border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: var(--neon-blue);
     border-color: var(--neon-blue);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
     transform: translateX(26px);
     background-color: black;
 }
@@ -124,7 +141,8 @@ select:hover {
 }
 
 /* --- 5. ACTION BUTTONS --- */
-.settings-action-btn, .action-btn.small {
+.settings-action-btn,
+.action-btn.small {
     background: transparent;
     border: 1px solid var(--neon-blue);
     color: white;
@@ -134,7 +152,8 @@ select:hover {
     transition: 0.2s;
 }
 
-.settings-action-btn:hover, .action-btn.small:hover {
+.settings-action-btn:hover,
+.action-btn.small:hover {
     background: rgba(0, 243, 255, 0.1);
     box-shadow: 0 0 10px var(--neon-blue);
 }

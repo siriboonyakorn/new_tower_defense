@@ -123,24 +123,25 @@ export class Navigation {
 
                     transitionLayer.classList.add('active');
 
+                    // Give the animations time to play (Scanner & Progress Bar)
                     setTimeout(() => {
                         this.closeMenu(deploymentOverlay);
                         if (mainMenu) mainMenu.classList.remove('active');
                         document.querySelectorAll('.sub-menu').forEach(m => m.classList.add('hidden'));
 
                         if (window.menuBackground) window.menuBackground.stop();
+                        if (window.game && typeof window.game.stop === 'function') {
+                            window.game.stop();
+                        }
 
-                        if (window.game) window.game.stop();
-
-                        // 2. USE THE CAPTURED ID HERE
-                        // This ensures 'targetLevelId' is not null when the game starts
+                        // USE THE CAPTURED ID HERE
                         window.game = new Game('game-canvas', targetLevelId);
 
                         setTimeout(() => {
                             transitionLayer.classList.remove('active');
-                        }, 600);
+                        }, 800);
 
-                    }, 400);
+                    }, 1400); // 1.4 seconds for a solid "Initializing" feel
                 }
             };
         }
@@ -172,7 +173,7 @@ export class Navigation {
         window.addEventListener('keydown', (e) => {
             if (e.key === "Escape" || e.key === "x" || e.key === "X") {
                 this.closeMenu(document.getElementById('logs-overlay'));
-                this.closeMenu(document.getElementById('settings-overlay'));
+                this.closeMenu(document.getElementById('settings-modal'));
                 this.closeMenu(document.getElementById('deployment-overlay'));
             }
         });

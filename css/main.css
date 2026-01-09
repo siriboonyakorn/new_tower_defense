@@ -48,11 +48,14 @@
 body {
     background-color: var(--bg-color);
     font-family: 'Orbitron', sans-serif;
-    overflow: hidden; 
+    overflow: hidden;
     color: white;
-    touch-action: none; /* Disables all browser-handled touch actions like pinch-zoom */
-    user-select: none;  /* Prevents highlighting text while clicking fast */
-    overscroll-behavior: none; /* Prevents the 'bounce' effect at page edges */
+    touch-action: none;
+    /* Disables all browser-handled touch actions like pinch-zoom */
+    user-select: none;
+    /* Prevents highlighting text while clicking fast */
+    overscroll-behavior: none;
+    /* Prevents the 'bounce' effect at page edges */
 }
 
 #game-canvas {
@@ -61,8 +64,8 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: -1; 
-    background-color: #000; 
+    z-index: -1;
+    background-color: #000;
 }
 
 #ui-layer {
@@ -72,7 +75,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: 10;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 .hidden {
@@ -81,18 +84,21 @@ body {
 
 /* --- FIXING THE BOOT SCREEN --- */
 #boot-screen {
-    position: fixed; /* Must be fixed to cover everything */
+    position: fixed;
+    /* Must be fixed to cover everything */
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #000; /* Solid black background */
-    z-index: 9999; /* Sit on top of everything */
-    
+    background-color: #000;
+    /* Solid black background */
+    z-index: 9999;
+    /* Sit on top of everything */
+
     display: flex;
     justify-content: center;
     align-items: center;
-    
+
     transition: opacity 1s ease, visibility 1s;
     opacity: 1;
     visibility: visible;
@@ -103,83 +109,231 @@ body {
     visibility: hidden;
 }
 
+/* --- ENHANCED TRANSITION LAYER --- */
 #transition-layer {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 999999; /* Max priority */
+    z-index: 999999;
     pointer-events: none;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-/* The Top Door */
-.shutter-top {
-    z-index: 10;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 50%;
-    background: #05070d;
-    border-bottom: 2px solid var(--neon-blue);
-    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-    
-    /* Start position: Hidden above screen */
-    transform: translateY(-100%); 
-    transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
-}
-
-/* The Bottom Door */
+.shutter-top,
 .shutter-bottom {
     z-index: 10;
     position: absolute;
-    bottom: 0;
     left: 0;
     width: 100%;
     height: 50%;
     background: #05070d;
+    overflow: hidden;
+    transition: transform 0.6s cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+.shutter-top {
+    top: 0;
+    border-bottom: 2px solid var(--neon-blue);
+    transform: translateY(-100%);
+}
+
+.shutter-bottom {
+    bottom: 0;
     border-top: 2px solid var(--neon-blue);
-    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-    
-    /* Start position: Hidden below screen */
-    transform: translateY(100%); 
-    transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+    transform: translateY(100%);
 }
 
-/* The Text in the middle */
-.transition-text {
-    position: relative;
-    z-index: 20; /* Text sits higher than shutters */
-    color: var(--neon-blue);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2rem; /* Made it a bit bigger for impact */
-    letter-spacing: 8px;
-    font-weight: 900;
-    
-    /* ADD THIS: A dark glow behind the text to 'cut' through the neon lines */
-    text-shadow: 0 0 20px rgba(0, 243, 255, 0.8), 0 0 40px rgba(0, 0, 0, 1);
-    background: rgba(5, 7, 13, 0.4); /* Very subtle dark box to clear the lines */
-    padding: 20px 40px;
-    
+/* Holographic Grid on Shutters */
+.shutter-grid {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.5;
+}
+
+/* Scanner Beam */
+.scanner-beam {
+    position: absolute;
+    z-index: 15;
+    width: 100%;
+    height: 4px;
+    background: var(--neon-blue);
+    box-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue);
+    top: 0;
     opacity: 0;
-    transform: scale(0.9);
-    transition: all 0.3s ease-out;
+    transform: translateY(-100vh);
 }
 
-/* --- THE ACTIVE STATE (CLOSED) --- */
-#transition-layer.active .shutter-top {
-    transform: translateY(0); /* Move to center */
+@keyframes laser-scan {
+    0% {
+        transform: translateY(-10vh);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
 }
 
+/* Transition Text & Content */
+.transition-content {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    opacity: 0;
+    transform: scale(1.1);
+    transition: all 0.4s ease-out 0.2s;
+}
+
+.transition-text {
+    color: var(--neon-blue);
+    font-size: 2.2rem;
+    letter-spacing: 10px;
+    font-weight: 900;
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+}
+
+/* Glitch Effect */
+.transition-text::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 2px;
+    text-shadow: -2px 0 #ff0055;
+    background: transparent;
+    overflow: hidden;
+    clip-path: inset(0 0 0 0);
+    animation: text-glitch 2s infinite linear alternate-reverse;
+}
+
+@keyframes text-glitch {
+    0% {
+        clip-path: inset(40% 0 61% 0);
+    }
+
+    20% {
+        clip-path: inset(92% 0 1% 0);
+    }
+
+    40% {
+        clip-path: inset(43% 0 1% 0);
+    }
+
+    60% {
+        clip-path: inset(25% 0 58% 0);
+    }
+
+    80% {
+        clip-path: inset(54% 0 7% 0);
+    }
+
+    100% {
+        clip-path: inset(58% 0 43% 0);
+    }
+}
+
+/* Progress Bar */
+.link-progress-wrap {
+    width: 400px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.link-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: var(--neon-blue);
+    box-shadow: 0 0 15px var(--neon-blue);
+}
+
+@keyframes progress-fill {
+    0% {
+        width: 0%;
+    }
+
+    100% {
+        width: 100%;
+    }
+}
+
+.transition-subtext {
+    font-size: 0.8rem;
+    color: var(--neon-blue);
+    opacity: 0.6;
+    letter-spacing: 4px;
+    animation: pulse 1s infinite alternate;
+}
+
+/* Active State Trigger */
+#transition-layer.active .shutter-top,
 #transition-layer.active .shutter-bottom {
-    transform: translateY(0); /* Move to center */
+    transform: translateY(0);
 }
 
-#transition-layer.active .transition-text {
+#transition-layer.active .transition-content {
     opacity: 1;
     transform: scale(1);
+}
+
+#transition-layer.active .link-progress-bar {
+    animation: progress-fill 1.5s ease-in-out forwards;
+}
+
+#transition-layer.active .scanner-beam {
+    animation: laser-scan 1.2s ease-in-out infinite;
+}
+
+/* --- RETREAT THEME (RED/AMBER) --- */
+#transition-layer.retreat .shutter-top,
+#transition-layer.retreat .shutter-bottom {
+    border-color: #ff3c00;
+}
+
+#transition-layer.retreat .scanner-beam {
+    background: #ff3c00;
+    box-shadow: 0 0 20px #ff3c00, 0 0 40px #ff3c00;
+    animation-duration: 0.6s;
+    /* Faster, more frantic scan */
+}
+
+#transition-layer.retreat .transition-text {
+    color: #ff9d00;
+    text-shadow: 0 0 20px rgba(255, 100, 0, 0.6);
+}
+
+#transition-layer.retreat .link-progress-bar {
+    background: #ff3c00;
+    box-shadow: 0 0 15px #ff3c00;
+}
+
+#transition-layer.retreat .transition-subtext {
+    color: #ff3c00;
+}
+
+#transition-layer.retreat .shutter-grid {
+    background-image:
+        linear-gradient(rgba(255, 60, 0, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 60, 0, 0.05) 1px, transparent 1px);
 }

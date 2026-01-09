@@ -7,15 +7,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <title>Sector Zero</title>
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/main.css?v=20260108-4">
 </head>
 
 <body>
 
     <div id="transition-layer">
-        <div class="shutter-top"></div>
-        <div class="shutter-bottom"></div>
-        <div class="transition-text">INITIALIZING SECTOR LINK...</div>
+        <div class="shutter-top">
+            <div class="shutter-grid"></div>
+        </div>
+        <div class="shutter-bottom">
+            <div class="shutter-grid"></div>
+        </div>
+        <div class="scanner-beam"></div>
+        <div class="transition-content">
+            <div class="transition-text" data-text="INITIALIZING SECTOR LINK...">
+                INITIALIZING SECTOR LINK...
+            </div>
+            <div class="link-progress-wrap">
+                <div class="link-progress-bar"></div>
+            </div>
+            <div class="transition-subtext">ENCRYPTING UPLINK...</div>
+        </div>
     </div>
 
     <canvas id="game-canvas"></canvas>
@@ -83,72 +96,56 @@
                     <button id="close-settings" class="close-btn">X</button>
                 </div>
 
-                <div class="settings-layout">
-                    <div class="settings-sidebar">
-                        <button class="tab-btn active" data-tab="audio">AUDIO</button>
-                        <button class="tab-btn" data-tab="graphics">VISUALS</button>
-                        <button class="tab-btn" data-tab="gameplay">GAMEPLAY</button>
+                <div class="settings-content-scroll">
+                    <!-- AUDIO SECTION -->
+                    <div class="settings-group">
+                        <h3 class="group-label">AUDIO_INTERFACES</h3>
+                        <div class="setting-row">
+                            <label>MASTER VOLUME</label>
+                            <div class="slider-container">
+                                <input type="range" id="vol-master" min="0" max="100" value="50">
+                                <span class="value-display">50%</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <label>SFX VOLUME</label>
+                            <div class="slider-container">
+                                <input type="range" id="vol-sfx" min="0" max="100" value="80">
+                                <span class="value-display">80%</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="settings-viewport">
-
-                        <div id="tab-audio" class="tab-content active">
-                            <div class="setting-group">
-                                <label>MASTER VOLUME</label>
-                                <div class="slider-container">
-                                    <input type="range" id="vol-master" min="0" max="100" value="50">
-                                    <span class="value-display">50%</span>
-                                </div>
-                            </div>
-                            <div class="setting-group">
-                                <label>SFX VOLUME</label>
-                                <div class="slider-container">
-                                    <input type="range" id="vol-sfx" min="0" max="100" value="80">
-                                    <span class="value-display">80%</span>
-                                </div>
-                            </div>
+                    <!-- VISUAL SECTION -->
+                    <div class="settings-group">
+                        <h3 class="group-label">NEURAL_RENDERING</h3>
+                        <div class="setting-row">
+                            <label>NEON BLOOM</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="opt-bloom" checked>
+                                <span class="slider round"></span>
+                            </label>
                         </div>
-
-                        <div id="tab-graphics" class="tab-content">
-                            <div class="setting-row">
-                                <label>NEON BLOOM</label>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="opt-bloom" checked>
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
-                            <div class="setting-row">
-                                <label>PARTICLE EFFECTS</label>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="opt-particles" checked>
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
+                        <div class="setting-row">
+                            <label>PARTICLE EFFECTS</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="opt-particles" checked>
+                                <span class="slider round"></span>
+                            </label>
                         </div>
-
-                        <div id="tab-gameplay" class="tab-content">
-                            <div class="setting-row">
-                                <label>SHOW DAMAGE NUMBERS</label>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="opt-dmg-nums" checked>
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
-                            <div class="setting-row">
-                                <label>AUTO-TARGET PRIORITY</label>
-                                <select id="opt-auto-target">
-                                    <option value="first">FIRST</option>
-                                    <option value="strong">STRONGEST</option>
-                                    <option value="weak">WEAKEST</option>
-                                </select>
-                            </div>
-                        </div>
-
                     </div>
-                </div>
 
-                <div class="settings-footer">
-                    <button id="btn-save-settings">APPLY CHANGES</button>
+                    <!-- GAMEPLAY SECTION -->
+                    <div class="settings-group">
+                        <h3 class="group-label">TACTICAL_HUD</h3>
+                        <div class="setting-row">
+                            <label>SHOW DAMAGE NUMBERS</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="opt-dmg-nums" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

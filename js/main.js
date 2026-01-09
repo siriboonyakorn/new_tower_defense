@@ -52,7 +52,13 @@ window.onload = () => {
                 }, 1500);
             }
 
-            if (mainMenu) mainMenu.classList.add('active');
+            if (mainMenu) {
+                mainMenu.classList.add('active');
+                console.log('✅ Main menu active class added:', mainMenu.classList.contains('active'));
+                console.log('Menu element:', mainMenu);
+            } else {
+                console.error('❌ Main menu element not found!');
+            }
 
             if (window.menuBackground === null) {
                 window.menuBackground = new SpaceScene('game-canvas');
@@ -78,34 +84,58 @@ window.onload = () => {
 
     // Inside setupUI() ...
 
-    // 1. Settings Tab Logic
-    const tabs = document.querySelectorAll('.tab-btn');
-    const contents = document.querySelectorAll('.tab-content');
+    // --- INSTANT SETTINGS LOGIC ---
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            // Remove active class from everything
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
+    // 1. Volume Sliders
+    const masterVol = document.getElementById('vol-master');
+    const sfxVol = document.getElementById('vol-sfx');
 
-            // Add active class to clicked tab
-            tab.classList.add('active');
+    const updateSliderFill = (slider) => {
+        const val = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+        slider.style.background = `linear-gradient(to right, var(--neon-blue) 0%, var(--neon-blue) ${val}%, rgba(255,255,255,0.1) ${val}%, rgba(255,255,255,0.1) 100%)`;
+    };
 
-            // Show corresponding content
-            const targetId = `tab-${tab.dataset.tab}`;
-            document.getElementById(targetId).classList.add('active');
-        });
-    });
-
-    // 2. Slider Number Updates
-    document.querySelectorAll('input[type="range"]').forEach(range => {
-        range.addEventListener('input', (e) => {
-            // Find the span next to this slider and update text
+    if (masterVol) {
+        masterVol.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (window.audioManager) window.audioManager.setVolume(val);
+            updateSliderFill(e.target);
+            // Update display text
             const display = e.target.parentElement.querySelector('.value-display');
-            if (display) display.innerText = `${e.target.value}%`;
+            if (display) display.innerText = `${val}%`;
         });
-    });
-};
+        updateSliderFill(masterVol); // Initial fill
+    }
+
+    if (sfxVol) {
+        sfxVol.addEventListener('input', (e) => {
+            const val = e.target.value;
+            // if (window.audioManager) window.audioManager.setSFXVolume(val); // Add if available
+            updateSliderFill(e.target);
+            const display = e.target.parentElement.querySelector('.value-display');
+            if (display) display.innerText = `${val}%`;
+        });
+        updateSliderFill(sfxVol);
+    }
+
+    // 2. Toggles (Bloom, Particles, etc.)
+    const bloomToggle = document.getElementById('opt-bloom');
+    const particleToggle = document.getElementById('opt-particles');
+    const dmgToggle = document.getElementById('opt-dmg-nums');
+
+    if (bloomToggle) {
+        bloomToggle.addEventListener('change', (e) => {
+            console.log("Bloom toggled:", e.target.checked);
+            // Apply to game engine here
+        });
+    }
+
+    if (particleToggle) {
+        particleToggle.addEventListener('change', (e) => {
+            console.log("Particles toggled:", e.target.checked);
+        });
+    }
+}
 // A safer way to open windows
 function openWindow(id) {
     const win = document.getElementById(id);

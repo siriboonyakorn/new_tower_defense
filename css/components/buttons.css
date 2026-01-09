@@ -22,6 +22,101 @@
     display: flex;
     align-items: center;
     gap: 15px;
+
+    /* Default state - buttons start hidden */
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+/* Trigger fade-in when parent is active OR when it's a sub-menu that isn't hidden */
+#main-menu.menu-screen.active .menu-item,
+.sub-menu:not(.hidden) .menu-item,
+#pause-menu:not(.hidden) .menu-item {
+    animation: fadeInSlide 0.5s ease-out forwards !important;
+}
+
+/* Staggered animation delays */
+#main-menu.menu-screen.active .menu-item:nth-child(1),
+.sub-menu:not(.hidden) .menu-item:nth-child(1) {
+    animation-delay: 0.1s !important;
+}
+
+#main-menu.menu-screen.active .menu-item:nth-child(2),
+.sub-menu:not(.hidden) .menu-item:nth-child(2) {
+    animation-delay: 0.2s !important;
+}
+
+#main-menu.menu-screen.active .menu-item:nth-child(3),
+.sub-menu:not(.hidden) .menu-item:nth-child(3) {
+    animation-delay: 0.3s !important;
+}
+
+#main-menu.menu-screen.active .menu-item:nth-child(4),
+.sub-menu:not(.hidden) .menu-item:nth-child(4) {
+    animation-delay: 0.4s !important;
+}
+
+#main-menu.menu-screen.active .menu-item:nth-child(5),
+.sub-menu:not(.hidden) .menu-item:nth-child(5) {
+    animation-delay: 0.5s !important;
+}
+
+
+/* Fade-in animation */
+@keyframes fadeInSlide {
+    0% {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Fade-out animation when menu is hiding */
+.menu-screen:not(.active) .menu-item,
+.menu-screen.fade-out .menu-item {
+    animation: fadeOutSlide 0.3s ease-in forwards;
+}
+
+.menu-screen:not(.active) .menu-item:nth-child(1),
+.menu-screen.fade-out .menu-item:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.menu-screen:not(.active) .menu-item:nth-child(2),
+.menu-screen.fade-out .menu-item:nth-child(2) {
+    animation-delay: 0.05s;
+}
+
+.menu-screen:not(.active) .menu-item:nth-child(3),
+.menu-screen.fade-out .menu-item:nth-child(3) {
+    animation-delay: 0.1s;
+}
+
+.menu-screen:not(.active) .menu-item:nth-child(4),
+.menu-screen.fade-out .menu-item:nth-child(4) {
+    animation-delay: 0.15s;
+}
+
+.menu-screen:not(.active) .menu-item:nth-child(5),
+.menu-screen.fade-out .menu-item:nth-child(5) {
+    animation-delay: 0.2s;
+}
+
+/* Fade-out animation */
+@keyframes fadeOutSlide {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
 }
 
 .menu-item::before {

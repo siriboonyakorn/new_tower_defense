@@ -10,7 +10,7 @@ export class InputHandler {
             const rect = this.canvas.getBoundingClientRect();
             this.game.mouse.x = e.clientX - rect.left;
             this.game.mouse.y = e.clientY - rect.top;
-            
+
             // Snap to grid
             this.game.hoveredTile.x = Math.floor(this.game.mouse.x / this.game.tileSize) * this.game.tileSize;
             this.game.hoveredTile.y = Math.floor(this.game.mouse.y / this.game.tileSize) * this.game.tileSize;

@@ -55,15 +55,41 @@ export class Renderer {
             this.ctx.closePath();
         });
     }
-
     drawProjectiles() {
-        this.game.projectiles.forEach(proj => {
+        this.game.projectiles.forEach((proj, index) => {
+            if (proj.isPulse) {
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = proj.color;
+                this.ctx.globalAlpha = Math.max(0, 1 - (Date.now() - (proj.startTime || Date.now())) / proj.duration);
+                this.ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+                this.ctx.stroke();
+                this.ctx.restore();
+
+                if (!proj.startTime) proj.startTime = Date.now();
+                return;
+            }
+
+            if (proj.isBeam) {
+                // Transient Laser Beam
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = proj.color || '#fff';
+                this.ctx.lineWidth = proj.width || 2;
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowColor = proj.color || '#fff';
+                this.ctx.moveTo(proj.from.x, proj.from.y);
+                this.ctx.lineTo(proj.to.x, proj.to.y);
+                this.ctx.stroke();
+                this.ctx.restore();
+
+                // Manage lifetime (Now handled in Game.js / Projectile update)
+                if (!proj.startTime) proj.startTime = Date.now();
+                return;
+            }
+
             this.ctx.beginPath();
-
-            // NO GLOW (Removed shadowBlur) = Looks like a physical bullet
             this.ctx.fillStyle = '#FFD700'; // Gold color
-
-            // Draw a slightly smaller, solid circle
             this.ctx.arc(proj.x, proj.y, 3, 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.closePath();
@@ -72,12 +98,12 @@ export class Renderer {
 
     drawTowers() {
         this.game.towers.forEach(tower => {
-            // Pass rotation
-            this.drawSciFiTower(tower.x, tower.y, tower.type.color, tower.level, false, tower.type.id, tower.rotation);
+            // Pass the whole tower object for path data
+            this.drawSciFiTower(tower.x, tower.y, tower.type.color, tower.level, false, tower.type.id, tower.rotation, tower);
         });
     }
 
-    drawSciFiTower(x, y, color, level, isPreview = false, typeId = 'laser', rotation = -Math.PI / 2) {
+    drawSciFiTower(x, y, color, level, isPreview = false, typeId = 'laser', rotation = -Math.PI / 2, tower = null) {
         const ctx = this.ctx;
         const time = Date.now() / 200; // Animation time base
 
@@ -104,7 +130,7 @@ export class Renderer {
                 break;
             case 'laser':
             default:
-                this.drawLaserTower(ctx, color, level, time, isPreview, rotation);
+                this.drawLaserTower(ctx, color, level, time, isPreview, rotation, tower);
                 break;
         }
 
@@ -118,36 +144,65 @@ export class Renderer {
 
     // --- TOWER TYPE IMPLEMENTATIONS ---
 
-    drawLaserTower(ctx, color, level, time, isPreview, rotation) {
-        // Hex Base
+    drawLaserTower(ctx, color, level, time, isPreview, rotation, tower) {
+        // Base
         this.drawPolygon(ctx, 0, 0, 20, 6, '#1a1d26', color);
 
-        // Lvl 2: Cooling Fins
-        if (level >= 2) {
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-12, -4, 4, 8);
-            ctx.fillRect(8, -4, 4, 8);
+        const pathA = tower ? tower.pathA : 0;
+        const pathB = tower ? tower.pathB : 0;
+
+        // Path B: Prism Splitter Visual (Lens)
+        if (pathB >= 1) {
+            ctx.fillStyle = '#00ffff';
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
         }
 
         // Turret (Rotates)
         ctx.save();
         ctx.rotate(rotation + Math.PI / 2);
+
+        // Solar Core (Path A)
+        if (pathA >= 2) {
+            const corePulse = 0.8 + Math.sin(time * 2) * 0.2;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffaa00';
+            this.drawPolygon(ctx, 0, 0, 12 * corePulse, 8, '#ffcc00', '#fff');
+        }
+
         ctx.fillStyle = '#2a2f3d';
         ctx.fillRect(-8, -8, 16, 16);
 
-        // Single Barrel
-        ctx.strokeStyle = '#fff';
+        // Barrel
+        ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(0, -18);
+        ctx.lineTo(0, -22);
 
-        // Lvl 4: Dual Barrel
-        if (level >= 4) {
-            ctx.moveTo(4, 0); ctx.lineTo(4, -18);
-            ctx.moveTo(-4, 0); ctx.lineTo(-4, -18);
+        // Path A Lvl 4: Thick Intense Beam Barrel
+        if (pathA >= 3) {
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        } else {
+            ctx.stroke();
         }
-        ctx.stroke();
+
+        // Path B Lvl 4: Geometric Patterns (Refraction Web)
+        if (pathB >= 3) {
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                ctx.rotate(Math.PI / 1.5);
+                ctx.strokeRect(-12, -25, 4, 4);
+            }
+        }
 
         ctx.restore();
 
@@ -155,9 +210,8 @@ export class Renderer {
         const pulse = isPreview ? 1 : 0.8 + Math.sin(time) * 0.2;
         ctx.fillStyle = color;
         ctx.beginPath();
-        // Lvl 5: Massive Diamond Core
         if (level >= 5) {
-            this.drawPolygon(ctx, 0, 0, 8 * pulse, 4, color, '#fff');
+            this.drawPolygon(ctx, 0, 0, 8 * pulse, pathA >= 4 ? 3 : 4, color, '#fff');
         } else {
             ctx.arc(0, 0, 5 * pulse, 0, Math.PI * 2);
             ctx.fill();
@@ -374,10 +428,30 @@ export class Renderer {
     drawEnemies() {
         this.game.enemies.forEach(enemy => {
             // A. Draw the Enemy Circle
+            this.ctx.save();
             this.ctx.beginPath();
+
+            // Status: Glow Hot (Burn)
+            if (enemy.effects.burn.stacks > 0) {
+                this.ctx.shadowBlur = enemy.effects.burn.stacks * 3;
+                this.ctx.shadowColor = 'orange';
+            }
+
+            // Status: Spectrum Collapse Pulse Visual
+            // (Handled by transient pulses or simple effect)
+
             this.ctx.fillStyle = enemy.type.color;
-            this.ctx.arc(enemy.x, enemy.y, 10, 0, Math.PI * 2); // 10 is radius
+            this.ctx.arc(enemy.x, enemy.y, 10, 0, Math.PI * 2);
             this.ctx.fill();
+
+            // Status: Light Disruption (Geometric patterns over enemy)
+            if (enemy.effects.distortion.timer > 0) {
+                this.ctx.strokeStyle = '#00ffff';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(enemy.x - 12, enemy.y - 12, 24, 24);
+            }
+
+            this.ctx.restore();
             this.ctx.closePath();
 
             // B. Draw Health Bar Background (Red)

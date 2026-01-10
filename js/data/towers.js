@@ -6,11 +6,31 @@ export const TOWER_TYPES = {
         name: 'LASER CANNON',
         type: 'combat',
         cost: 100,
-        range: 150, // Medium range
-        damage: 35,
-        cooldown: 800, // Frames between shots (60 = 1 sec)
-        color: '#ff0055', // Neon Red
-        description: 'Standard defense unit. Balanced range and damage.'
+        range: 160,
+        damage: 15,
+        cooldown: 600,
+        color: '#00ffff', // Cyan Level 1
+        description: 'Fires fast laser pulses. Modular space turret.',
+        paths: {
+            A: {
+                name: 'Solar Overdrive',
+                levels: [
+                    { level: 2, name: 'Energy Amplifier', cost: 150, damageMult: 1.5, visual: 'brighter' },
+                    { level: 3, name: 'Solar Burn Core', cost: 300, effect: 'burn', damageMult: 1.2 },
+                    { level: 4, name: 'Plasma Saturation', cost: 500, effect: 'burn_spread', damageMult: 1.3 },
+                    { level: 5, name: 'Stellar Lance', cost: 1000, effect: 'overcharge', damageMult: 2.5 }
+                ]
+            },
+            B: {
+                name: 'Prism Control',
+                levels: [
+                    { level: 2, name: 'Prism Splitter', cost: 150, effect: 'split', rangeMult: 1.1 },
+                    { level: 3, name: 'Light Disruption', cost: 300, effect: 'slow', distortion: true },
+                    { level: 4, name: 'Refraction Web', cost: 500, effect: 'chain' },
+                    { level: 5, name: 'Spectrum Collapse', cost: 1000, effect: 'pulse_blast' }
+                ]
+            }
+        }
     },
     MACHINE: {
         id: 'machine',

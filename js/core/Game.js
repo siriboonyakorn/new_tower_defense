@@ -5,6 +5,7 @@ import { ENEMIES } from '../data/enemies.js';
 import { LEVEL_WAVES } from '../data/waves.js'; // Import the new object
 import { Renderer } from './Renderer.js';
 import { Tower } from '../entities/Tower.js';
+import { Enemy } from '../entities/Enemy.js';
 import { levels } from '../data/levels.js';
 
 export class Game {
@@ -143,101 +144,53 @@ export class Game {
             this.waveTimer++;
         }
 
-        this.troops.forEach((troop, index) => {
+        this.troops = this.troops.filter(troop => {
             troop.update();
-            if (troop.markedForDeletion) {
-                this.troops.splice(index, 1);
-            }
+            return !troop.markedForDeletion;
         });
 
         // --- 2. UPDATE ENTITIES ---
         this.towers.forEach(tower => tower.update());
 
-        this.projectiles.forEach((proj, index) => {
+        this.projectiles = this.projectiles.filter(proj => {
             proj.update();
-            if (proj.markedForDeletion) {
-                this.projectiles.splice(index, 1);
-            }
+            return !proj.markedForDeletion;
         });
 
-        this.enemies.forEach((enemy, index) => {
+        this.enemies = this.enemies.filter(enemy => {
             // Check Death
             if (enemy.hp <= 0) {
                 this.credits += enemy.type.reward;
-                this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
-                this.enemies.splice(index, 1);
-                return;
+                this.handleEnemyDeathEffects(enemy);
+                this.updateResourceDisplay();
+                return false;
             }
 
-            // Move Enemy
-            const target = this.path[enemy.pathIndex + 1];
-            if (!target) return;
+            // Update Enemy Logic (returns false if it reached the base)
+            const active = enemy.update();
 
-            const tx = target.x * this.tileSize + this.tileSize / 2;
-            const ty = target.y * this.tileSize + this.tileSize / 2;
-            const dx = tx - enemy.x;
-            const dy = ty - enemy.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < enemy.speed) {
-                enemy.x = tx; enemy.y = ty; enemy.pathIndex++;
-                // --- 3. UPDATE ENEMIES (Replace your old loop with this) ---
-                // We loop backwards to safely remove enemies
-                for (let i = this.enemies.length - 1; i >= 0; i--) {
-                    const enemy = this.enemies[i];
-
-                    // A. Check Death (Health <= 0)
-                    if (enemy.hp <= 0) {
-                        this.credits += enemy.type.reward;
-                        this.updateResourceDisplay();
-                        this.enemies.splice(i, 1);
-                        continue; // Move to next enemy
-                    }
-
-                    // B. Move Enemy Logic
-                    const target = this.path[enemy.pathIndex + 1];
-
-                    // If no target, they reached the end (Base Hit!)
-                    if (!target) {
-                        this.lives--;             // Lose a life
-                        this.updateResourceDisplay(); // Update HTML
-                        this.enemies.splice(index, 1); // Remove enemy
-
-                        // Optional: Check Game Over
-                        if (this.lives <= 0) {
-                            alert("GAME OVER");
-                            window.location.reload();
-                        }
-                        return; // Stop here for this enemy
-                    }
-
-                    const tx = target.x * this.tileSize + this.tileSize / 2;
-                    const ty = target.y * this.tileSize + this.tileSize / 2;
-                    const dx = tx - enemy.x;
-                    const dy = ty - enemy.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < enemy.speed) {
-                        // Snap to grid and move to next waypoint
-                        enemy.x = tx;
-                        enemy.y = ty;
-                        enemy.pathIndex++;
-
-                        // Check if this was the FINAL waypoint
-                        if (enemy.pathIndex >= this.path.length - 1) {
-                            this.handleBaseHit(i);
-                        }
-                    } else {
-                        // Smooth movement towards target
-                        enemy.x += (dx / dist) * enemy.speed;
-                        enemy.y += (dy / dist) * enemy.speed;
-                    }
-                }
-            } else {
-                enemy.x += (dx / dist) * enemy.speed;
-                enemy.y += (dy / dist) * enemy.speed;
+            if (!active) {
+                this.handleBaseHitWithoutSplice(enemy);
+                return false;
             }
+            return true;
         });
+    }
+
+    handleEnemyDeathEffects(enemy) {
+        // Find towers that might have caused this or handle general area effects
+        // For simplicity, if an enemy dies with high burn, it might spread?
+        // Actually Level 4A logic says: "Burn spreads slightly after enemy death"
+        // We'll check if any Tower Level 4A is nearby or if we mark the enemy as "volatile"
+        if (enemy.effects.burn.stacks >= 5) {
+            this.enemies.forEach(other => {
+                if (other === enemy) return;
+                const dist = Math.sqrt(Math.pow(other.x - enemy.x, 2) + Math.pow(other.y - enemy.y, 2));
+                if (dist < 60) {
+                    other.applyBurn(2);
+                }
+            });
+        }
     }
 
     spawnEnemy() {
@@ -256,17 +209,12 @@ export class Game {
         }
         // --------------------
 
-        const enemy = {
-            id: Math.random(),
-            type: typeConfig, // This is now safe
-            x: this.path[0].x * this.tileSize + this.tileSize / 2,
-            y: this.path[0].y * this.tileSize + this.tileSize / 2,
-            pathIndex: 0,
-            hp: typeConfig.hp,
-            maxHp: typeConfig.hp,
-            speed: typeConfig.speed,
-            frozen: false
-        };
+        const enemy = new Enemy(
+            this,
+            typeConfig,
+            this.path[0].x * this.tileSize + this.tileSize / 2,
+            this.path[0].y * this.tileSize + this.tileSize / 2
+        );
 
         this.enemies.push(enemy);
         this.enemiesRemainingToSpawn--;
@@ -554,6 +502,25 @@ export class Game {
         this.enemies.splice(enemyIndex, 1);
 
         // 5. Game Over Check
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    handleBaseHitWithoutSplice(enemy) {
+        // 1. Lose Life
+        this.lives--;
+
+        // 2. Update UI
+        this.updateResourceDisplay();
+
+        // 3. Visual Feedback (Screen Flash Red)
+        document.body.style.boxShadow = "inset 0 0 50px rgba(255, 0, 0, 0.5)";
+        setTimeout(() => {
+            document.body.style.boxShadow = "";
+        }, 100);
+
+        // 4. Game Over Check
         if (this.lives <= 0) {
             this.gameOver();
         }

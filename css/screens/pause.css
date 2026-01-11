@@ -1,0 +1,251 @@
+/* css/screens/pause.css */
+
+/* --- 1. WORLD BLUR (Canvas) --- */
+#game-container.paused #game-canvas {
+    filter: blur(15px) brightness(0.2) contrast(1.4);
+    transform: scale(1.1);
+    transition: all 0.1s steps(2);
+}
+
+/* --- 2. HUD & SLOT BLUR --- */
+#game-container.paused #game-hud> :not(#pause-menu) {
+    filter: blur(10px) grayscale(100%);
+    pointer-events: none;
+    opacity: 0.3;
+    transition: all 0.1s steps(2);
+}
+
+/* Ensure slots are definitely blurred */
+#game-container.paused .bottom-command-bar {
+    filter: blur(10px);
+}
+
+/* --- 3. GLITCHY PAUSE MENU DESIGN --- */
+#pause-menu {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+}
+
+/* COMPACT RECTANGULAR WINDOW */
+.pause-window {
+    width: 360px;
+    /* Smaller Rectangle */
+    min-height: 140px;
+    /* Ensure it stays short enough to look rectangular */
+    padding: 15px 30px;
+    background: rgba(5, 8, 15, 0.98);
+    border: 1px solid var(--neon-blue);
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    /* Animation: Slide in from left with glitch */
+    animation: main-slide 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+/* THE GLITCH TRAIL (Ghost Effect) */
+.pause-window::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 243, 255, 0.15);
+    /* Cyan Ghost */
+    border: 1px solid rgba(255, 0, 85, 0.5);
+    /* Red Border Ghost */
+    z-index: -1;
+    transform: translateX(-100vw);
+    /* Start off screen */
+
+    /* Animation: Lagging behind the main slide */
+    animation: ghost-trail 0.4s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+/* Secondary Glitch Element for "After Effects" feel */
+.pause-window::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: -3px;
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    z-index: -2;
+    opacity: 0;
+    animation: flicker-rect 3s infinite;
+}
+
+/* Static Standard Blue Title */
+.pause-title {
+    font-size: 2rem;
+    color: var(--neon-blue);
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+    margin-bottom: 5px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+/* Troll Message Style */
+.pause-troll {
+    color: #00f3ff;
+    text-align: center;
+    font-size: 0.65rem;
+    margin-bottom: 20px;
+    font-family: 'Consolas', monospace;
+    opacity: 0.8;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    /* Force single line */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Scanline Overlay */
+#game-container.paused::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: repeating-linear-gradient(0deg,
+            rgba(0, 0, 0, 0.2),
+            rgba(0, 0, 0, 0.2) 1px,
+            transparent 1px,
+            transparent 3px);
+    z-index: 999;
+    pointer-events: none;
+}
+
+/* --- ANIMATIONS --- */
+
+@keyframes main-slide {
+    0% {
+        transform: translateX(-150%) skewX(15deg);
+        opacity: 0;
+    }
+
+    60% {
+        transform: translateX(10px) skewX(-5deg);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translateX(-5px) skewX(2deg);
+    }
+
+    100% {
+        transform: translateX(0) skewX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes ghost-trail {
+    0% {
+        transform: translateX(-180%) scale(0.9);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateX(-30px) scale(1.05);
+        opacity: 0.5;
+        filter: blur(4px);
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 0;
+    }
+}
+
+@keyframes flicker-rect {
+    0% {
+        opacity: 0;
+        transform: translate(0, 0);
+    }
+
+    2% {
+        opacity: 1;
+        transform: translate(-2px, 2px);
+    }
+
+    4% {
+        opacity: 0;
+    }
+
+    6% {
+        opacity: 0.5;
+        transform: translate(2px, -2px);
+    }
+
+    8% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Buttons */
+.pause-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Tighter gap */
+}
+
+.pause-buttons .menu-item {
+    background: rgba(0, 243, 255, 0.05);
+    border: 1px solid #333;
+    color: #aaa;
+    font-size: 0.85rem;
+    /* Smaller font */
+    padding: 12px;
+    transition: all 0.2s;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+@keyframes deng-pulse {
+    0% {
+        transform: scale(1);
+        background: rgba(0, 243, 255, 0.05);
+    }
+
+    50% {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+    }
+
+    100% {
+        transform: scale(1.05);
+        background: rgba(0, 243, 255, 0.3);
+    }
+}
+
+.pause-buttons .menu-item:hover {
+    background: rgba(0, 243, 255, 0.3);
+    border-color: #fff;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+    animation: deng-pulse 0.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+.pause-buttons .exit-btn:hover {
+    background: rgba(255, 0, 85, 0.15);
+    border-color: #ff0055;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.15);
+    color: #fff;
+}

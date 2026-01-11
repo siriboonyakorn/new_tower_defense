@@ -46,18 +46,12 @@ window.onload = () => {
             if (bootScreen) {
                 requestAnimationFrame(() => {
                     bootScreen.classList.add('fade-out');
+                    // Activate Menu IMMEDIATELY when fade starts
+                    if (mainMenu) mainMenu.classList.add('active');
                 });
                 setTimeout(() => {
                     bootScreen.style.display = 'none';
                 }, 1500);
-            }
-
-            if (mainMenu) {
-                mainMenu.classList.add('active');
-                console.log('✅ Main menu active class added:', mainMenu.classList.contains('active'));
-                console.log('Menu element:', mainMenu);
-            } else {
-                console.error('❌ Main menu element not found!');
             }
 
             if (window.menuBackground === null) {

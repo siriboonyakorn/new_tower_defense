@@ -4,15 +4,21 @@ export class AudioManager {
     constructor() {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         this.audioContext = new AudioContext();
-        
+
         this.gainNode = this.audioContext.createGain();
         this.gainNode.connect(this.audioContext.destination);
         this.volume = 0.5;
         this.buffer = null;
+        this.pauseBuffer = null; // New Buffer
+        this.currentSource = null;
         this.isMusicPlaying = false;
+        this.currentMode = 'game'; // 'game' or 'pause'
 
-        // FIX: Store the promise so we can 'await' it later
-        this.musicReady = this.loadMusic(); 
+        // Load both tracks
+        this.musicReady = Promise.all([
+            this.loadMusic(),
+            this.loadPauseMusic()
+        ]);
     }
 
     async resumeContext() {
@@ -25,41 +31,60 @@ export class AudioManager {
         try {
             const response = await fetch('assets/audio/music.mp3');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
             const arrayBuffer = await response.arrayBuffer();
             this.buffer = await this.audioContext.decodeAudioData(arrayBuffer);
-            
-            console.log("✅ Music decoded and ready.");
+            console.log("✅ Main Music loaded.");
         } catch (e) {
             console.error("❌ Failed to load music:", e);
         }
-    }   
+    }
+
+    async loadPauseMusic() {
+        try {
+            const response = await fetch('assets/audio/pause_music.mp3');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const arrayBuffer = await response.arrayBuffer();
+            this.pauseBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            console.log("✅ Pause Music loaded.");
+        } catch (e) {
+            console.error("❌ Failed to load pause music:", e);
+        }
+    }
 
     playMusic() {
-        // If it's already playing, do nothing
-        if (this.isMusicPlaying) return;
+        this.playTrack('game');
+    }
 
-        // If buffer is still missing, something went wrong with the download
-        if (!this.buffer) {
-            console.error("Cannot play: Buffer is still empty.");
+    // Unified Track Player
+    playTrack(mode) {
+        if (this.currentMode === mode && this.isMusicPlaying) return; // Already playing this mode
+
+        this.currentMode = mode;
+        const targetBuffer = mode === 'pause' ? this.pauseBuffer : this.buffer;
+
+        if (!targetBuffer) {
+            console.warn(`Audio: Buffer for ${mode} not ready.`);
             return;
         }
-        
-        console.log("Audio Engine: Starting Stream...");
-        this.isMusicPlaying = true; 
 
-        // Stop previous source if exists
-        if (this.source) {
-            try { this.source.stop(); } catch(e) {}
+        // Stop current
+        if (this.currentSource) {
+            try { this.currentSource.stop(); } catch (e) { }
         }
 
-        this.source = this.audioContext.createBufferSource();
-        this.source.buffer = this.buffer;
-        this.source.loop = true;
-        this.source.connect(this.gainNode);
-        
-        this.gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
-        this.source.start(0);
+        this.isMusicPlaying = true;
+        this.currentSource = this.audioContext.createBufferSource();
+        this.currentSource.buffer = targetBuffer;
+        this.currentSource.loop = true;
+        this.currentSource.connect(this.gainNode);
+
+        // Smooth transition
+        this.gainNode.gain.cancelScheduledValues(this.audioContext.currentTime);
+        this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        this.gainNode.gain.linearRampToValueAtTime(this.volume, this.audioContext.currentTime + 0.5);
+
+        this.currentSource.start(0);
+        console.log(`Audio: Switched to ${mode} track.`);
     }
 
     setVolume(value) {
@@ -77,7 +102,7 @@ export class AudioManager {
         const now = this.audioContext.currentTime;
 
         if (type === 'hover') {
-            osc.type = 'square'; osc.frequency.setValueAtTime(880, now); 
+            osc.type = 'square'; osc.frequency.setValueAtTime(880, now);
             gainNode.gain.setValueAtTime(this.volume * 0.1, now);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(); osc.stop(now + 0.1);

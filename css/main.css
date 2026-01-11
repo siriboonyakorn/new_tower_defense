@@ -16,7 +16,8 @@
 
 /* 3. LAYOUT LAYER - Permanent HUD elements */
 @import 'layout/topbar.css';
-@import 'layout/sidebar.css';
+/* @import 'layout/sidebar.css'; REMOVED */
+@import 'layout/bottom-bar.css';
 @import 'layout/hud.css';
 @import 'layout/shop.css';
 
@@ -28,6 +29,7 @@
 /* 5. SCREEN LAYER - Full-screen overlays */
 @import 'screens/boot.css';
 @import 'screens/menu.css';
+@import 'screens/pause.css';
 @import 'screens/deployment.css';
 @import 'screens/game-over.css';
 /* @import 'screens/map-select.css'; // Uncomment when you add this file */
@@ -287,6 +289,11 @@ body {
 }
 
 /* Active State Trigger */
+#transition-layer.active {
+    pointer-events: auto;
+    /* BLOCKS clicks when active */
+}
+
 #transition-layer.active .shutter-top,
 #transition-layer.active .shutter-bottom {
     transform: translateY(0);

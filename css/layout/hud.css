@@ -1,6 +1,7 @@
 .wave-controls {
     position: absolute;
-    bottom: 30px;
+    bottom: 150px;
+    /* Raised to clear the bottom command bar */
     left: 50%;
     transform: translateX(-50%);
     display: flex;

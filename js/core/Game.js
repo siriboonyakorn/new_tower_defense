@@ -26,6 +26,14 @@ export class Game {
         this.canvas.height = this.height;
         this.tileSize = 60;
 
+        // FIXED: Handle Resize to keep coordinate system accurate
+        window.addEventListener('resize', () => {
+            this.width = window.innerWidth;
+            this.height = window.innerHeight;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        });
+
         // Game State
         this.isRunning = true;
         this.credits = 600;
@@ -62,7 +70,8 @@ export class Game {
 
         // Show UI
         document.getElementById('game-hud').classList.remove('hidden');
-        document.getElementById('btn-toggle-build').classList.remove('hidden');
+        document.getElementById('main-menu').classList.remove('active'); // HIDE MENU
+        // document.getElementById('btn-toggle-build').classList.remove('hidden'); // REMOVED
         this.updateResourceDisplay();
 
         this.loop();
@@ -76,10 +85,10 @@ export class Game {
 
     hideUI() {
         document.getElementById('game-hud').classList.add('hidden');
-        document.getElementById('btn-toggle-build').classList.add('hidden');
+        // document.getElementById('btn-toggle-build').classList.add('hidden'); // REMOVED
         document.getElementById('pause-menu').classList.add('hidden');
         document.getElementById('end-screen').classList.add('hidden');
-        document.querySelector('.side-panel').classList.remove('open');
+        // document.querySelector('.side-panel').classList.remove('open'); // REMOVED
     }
 
     // --- GAME LOOP ---
@@ -305,58 +314,80 @@ export class Game {
         const returnBtn = document.getElementById('btn-return-menu');
         if (returnBtn) {
             returnBtn.onclick = () => {
-                this.exitToMenu(); // Use internal exit logic instead of reload
+                this.exitToMenu();
             };
         }
         // Wire up Wave Buttons
         if (startBtn) startBtn.onclick = () => this.startNextWave();
         if (skipBtn) skipBtn.onclick = () => this.startNextWave();
 
-        // --- TOWER GRID GENERATION ---
-        const gridContainer = document.querySelector('.tower-grid');
-        gridContainer.innerHTML = '';
+        // --- NEW: BOTTOM HOTBAR GENERATION ---
+        const slotsContainer = document.querySelector('.hotbar-slots');
+        slotsContainer.innerHTML = '';
+
+        const hotkeys = ['1', '2', '3', '4', '5'];
+        let idx = 0;
 
         Object.values(TOWER_TYPES).forEach(tower => {
-            const btn = document.createElement('div');
-            btn.className = 'build-btn';
-            btn.innerHTML = `
-                <div class="tower-icon" style="background:${tower.color}"></div>
-                <div class="build-info">
-                    <span class="name">${tower.name.split(' ')[0]}</span>
-                    <span class="cost">${tower.cost}</span>
-                </div>
+            if (idx >= 5) return; // Limit to 5 for now
+
+            const slot = document.createElement('div');
+            slot.className = 'slot-btn';
+
+            // Add Hotkey Indicator
+            const key = hotkeys[idx];
+
+            slot.innerHTML = `
+                <span class="slot-key">${key}</span>
+                <div class="slot-icon" style="background:${tower.color}"></div>
+                <div class="slot-cost">${tower.cost}</div>
             `;
 
-            btn.onclick = (e) => {
+            slot.onclick = (e) => {
                 e.stopPropagation();
-
-                // Toggle Selection
-                if (this.selectedTowerType === tower) {
-                    this.selectedTowerType = null;
-                    btn.classList.remove('active');
-                } else {
-                    // Deselect others
-                    document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('active'));
-                    // Select this one
-                    this.selectedTowerType = tower;
-                    btn.classList.add('active');
-
-                    // IMPORTANT: If we were inspecting a tower, switch back to build mode
-                    this.deselectTower();
-                }
+                this.handleSlotClick(tower, slot);
             };
-            gridContainer.appendChild(btn);
-        });
 
-        // --- REMOVED: The code that hid/showed the side panel ---
-        // (We don't need the buildBtn.onclick logic anymore)
+            // Bind Keyboard Shortcut
+            window.addEventListener('keydown', (e) => {
+                if (e.key === key && !this.selectedTower) { // Only if not inspecting
+                    this.handleSlotClick(tower, slot);
+                }
+            });
+
+            slotsContainer.appendChild(slot);
+            idx++;
+        });
+    }
+
+    handleSlotClick(tower, btnElement) {
+        if (this.selectedTowerType === tower) {
+            this.selectedTowerType = null;
+            btnElement.classList.remove('active');
+        } else {
+            // Deselect others
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
+            // Select this one
+            this.selectedTowerType = tower;
+            btnElement.classList.add('active');
+
+            // If inspecting, exit inspect mode
+            if (this.selectedTower) this.deselectTower();
+        }
     }
 
     setupInputs() {
         this.canvas.addEventListener('mousemove', (e) => {
+            // Robust scaling: Map screen pixels (client) -> Canvas Internal Pixels
             const rect = this.canvas.getBoundingClientRect();
-            this.mouse.x = e.clientX - rect.left;
-            this.mouse.y = e.clientY - rect.top;
+
+            // This handles cases where canvas is scaled via CSS (e.g. max-width: 100%)
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+
+            // e.clientX is relative to viewport, rect.left is canvas position
+            this.mouse.x = (e.clientX - rect.left) * scaleX;
+            this.mouse.y = (e.clientY - rect.top) * scaleY;
 
             // FREE PLACEMENT: Center tower on mouse
             this.hoveredTile.x = this.mouse.x - this.tileSize / 2;
@@ -386,10 +417,6 @@ export class Game {
 
         this.setupInspectListeners();
         this.setupPauseListeners();
-
-        this.canvas.addEventListener('click', () => {
-            if (this.selectedTowerType) this.placeTower();
-        });
     }
 
     updateResourceDisplay() {
@@ -480,7 +507,7 @@ export class Game {
 
         // Manual Deselect Logic
         this.selectedTowerType = null;
-        document.querySelectorAll('.build-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('active'));
     }
 
     // --- NEW HELPER FUNCTIONS ---
@@ -549,13 +576,12 @@ export class Game {
 
     selectTower(tower) {
         this.selectedTower = tower;
+        this.selectedTowerType = null; // Prioritize inspect over build
+        document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('active'));
 
         // UI Swap: Hide Build, Show Inspect
         document.getElementById('build-menu').classList.add('hidden');
         document.getElementById('inspect-menu').classList.remove('hidden');
-
-        // Open the side panel if it's closed
-        document.querySelector('.side-panel').classList.add('open');
 
         this.updateInspectUI();
     }
@@ -567,10 +593,9 @@ export class Game {
         const buildMenu = document.getElementById('build-menu');
         const inspectMenu = document.getElementById('inspect-menu');
 
+        // Swap back
         if (buildMenu) buildMenu.classList.remove('hidden');
         if (inspectMenu) inspectMenu.classList.add('hidden');
-
-        // 2. Clear any active visual selection on the map (optional)
     }
 
     updateInspectUI() {
@@ -579,45 +604,114 @@ export class Game {
 
         // 1. Name & Stats
         document.getElementById('inspect-name').innerText = `${t.type.name} (Lvl ${t.level})`;
+
+        // Use the simplified Horizontal stats for the bar
         document.getElementById('inspect-stats').innerHTML = `
-            <div class="stat-row"><span>DMG:</span> <span>${Math.floor(t.damage)}</span></div>
-            <div class="stat-row"><span>RNG:</span> <span>${Math.floor(t.range)}</span></div>
-            <div class="stat-row"><span>SPD:</span> <span>${(1000 / t.cooldown).toFixed(1)}/s</span></div>
+            <span class="stat-group">DMG <span class="stat-val">${Math.floor(t.damage)}</span></span>
+            <span class="stat-group">RNG <span class="stat-val">${Math.floor(t.range)}</span></span>
+            <span class="stat-group">SPD <span class="stat-val">${(1000 / t.cooldown).toFixed(1)}/s</span></span>
         `;
 
-        // 2. Upgrade Button
+        // 2. Upgrade Button Logic
         const upgBtn = document.getElementById('btn-upgrade');
-        const costSpan = document.getElementById('upgrade-cost');
+        const dualContainer = document.getElementById('dual-upgrade-container');
+        const btnA = document.getElementById('btn-upgrade-a');
+        const btnB = document.getElementById('btn-upgrade-b');
 
-        if (t.level >= 5) {
-            upgBtn.classList.add('locked');
-            upgBtn.innerText = "MAX LEVEL REACHED";
-            upgBtn.style.opacity = "0.5";
+        if (t.type.id === 'laser') {
+            // --- LASER BRANCHING LOGIC ---
+            upgBtn.classList.add('hidden'); // Hide standard
+            dualContainer.classList.remove('hidden'); // Show dual
+            dualContainer.style.display = 'flex';
+
+            // Path A
+            if (t.pathA >= 4 || (t.pathLocked && t.pathLocked !== 'A')) {
+                btnA.disabled = true;
+                btnA.innerHTML = t.pathLocked !== 'A' ? "LOCKED" : "MAX";
+                btnA.classList.add('locked');
+            } else {
+                btnA.disabled = false;
+                btnA.classList.remove('locked');
+                const costA = t.getUpgradeCost('A');
+                // Get name of next upgrade
+                const nextNameA = t.type.paths.A.levels[t.pathA].name;
+                btnA.innerHTML = `${nextNameA}<br><span style="color:var(--neon-blue)">${costA}</span>`;
+                btnA.style.opacity = this.credits >= costA ? '1' : '0.5';
+            }
+
+            // Path B
+            if (t.pathB >= 4 || (t.pathLocked && t.pathLocked !== 'B')) {
+                btnB.disabled = true;
+                btnB.innerHTML = t.pathLocked !== 'B' ? "LOCKED" : "MAX";
+                btnB.classList.add('locked');
+            } else {
+                btnB.disabled = false;
+                btnB.classList.remove('locked');
+                const costB = t.getUpgradeCost('B');
+                const nextNameB = t.type.paths.B.levels[t.pathB].name;
+                btnB.innerHTML = `${nextNameB}<br><span style="color:var(--neon-blue)">${costB}</span>`;
+                btnB.style.opacity = this.credits >= costB ? '1' : '0.5';
+            }
+
         } else {
-            upgBtn.classList.remove('locked');
-            const cost = t.getUpgradeCost();
-            upgBtn.innerHTML = `UPGRADE <span id="upgrade-cost">(${cost})</span>`;
+            // --- STANDARD LOGIC ---
+            upgBtn.classList.remove('hidden');
+            dualContainer.classList.add('hidden');
+            dualContainer.style.display = 'none';
 
-            // Visual check if player can afford it
-            if (this.credits < cost) upgBtn.style.opacity = '0.5';
-            else upgBtn.style.opacity = '1';
+            if (t.level >= 5) {
+                upgBtn.classList.add('locked');
+                upgBtn.innerHTML = "MAX LEVEL";
+                upgBtn.disabled = true;
+            } else {
+                upgBtn.classList.remove('locked');
+                upgBtn.disabled = false;
+                const cost = t.getUpgradeCost();
+                upgBtn.innerHTML = `UPGRADE <span id="upgrade-cost">(${cost})</span>`;
+
+                if (this.credits < cost) upgBtn.style.opacity = '0.5';
+                else upgBtn.style.opacity = '1';
+            }
         }
 
         // 3. Target Button
         document.getElementById('btn-target').innerText = `TARGET: ${t.targetMode}`;
-
-        // 4. Sell Button
-        document.getElementById('sell-value').innerText = t.getSellValue();
     }
 
     setupInspectListeners() {
-        // Upgrade
+        // Upgrade (Standard)
         document.getElementById('btn-upgrade').onclick = () => {
             if (this.selectedTower && this.selectedTower.canUpgrade()) {
                 const cost = this.selectedTower.getUpgradeCost();
                 if (this.credits >= cost) {
                     this.credits -= cost;
                     this.selectedTower.upgrade();
+                    this.updateResourceDisplay();
+                    this.updateInspectUI();
+                }
+            }
+        };
+
+        // Upgrade Path A (Laser)
+        document.getElementById('btn-upgrade-a').onclick = () => {
+            if (this.selectedTower && this.selectedTower.canUpgrade('A')) {
+                const cost = this.selectedTower.getUpgradeCost('A');
+                if (this.credits >= cost) {
+                    this.credits -= cost;
+                    this.selectedTower.upgrade('A');
+                    this.updateResourceDisplay();
+                    this.updateInspectUI();
+                }
+            }
+        };
+
+        // Upgrade Path B (Laser)
+        document.getElementById('btn-upgrade-b').onclick = () => {
+            if (this.selectedTower && this.selectedTower.canUpgrade('B')) {
+                const cost = this.selectedTower.getUpgradeCost('B');
+                if (this.credits >= cost) {
+                    this.credits -= cost;
+                    this.selectedTower.upgrade('B');
                     this.updateResourceDisplay();
                     this.updateInspectUI();
                 }
@@ -677,16 +771,67 @@ export class Game {
     togglePause() {
         this.isPaused = !this.isPaused;
         const menu = document.getElementById('pause-menu');
+        const container = document.getElementById('game-container');
 
         if (this.isPaused) {
             menu.classList.remove('hidden');
+            if (container) container.classList.add('paused');
+            if (window.audioManager) window.audioManager.playTrack('pause');
+            this.startTrollMessages();
         } else {
             menu.classList.add('hidden');
+            if (container) container.classList.remove('paused');
+            if (window.audioManager) window.audioManager.playTrack('game');
+            this.stopTrollMessages();
+        }
+    }
+
+    startTrollMessages() {
+        const messages = [
+            ">> ALIENS ARE DEFINITELY NOT MOVING <<",
+            ">> IMAGINE PAUSING... LOL <<",
+            ">> PAUSING WON'T SAVE YOU <<",
+            ">> SYSTEM OVERHEATING... JUST KIDDING <<",
+            ">> YOUR BASE LOOKS VULNERABLE <<",
+            ">> I PROMISE I'M NOT MINING BITCOIN <<"
+        ];
+
+        const el = document.getElementById('pause-troll-msg');
+        if (!el) return;
+
+        let idx = 0;
+        // Function to set message with glitch effect
+        const setMsg = () => {
+            el.innerText = messages[idx];
+            el.style.opacity = '1';
+
+            // Trigger simple reflow animation if needed, or rely on CSS flicker
+            idx = Math.floor(Math.random() * messages.length);
+        };
+
+        setMsg(); // Initial set
+
+        this.trollInterval = setInterval(() => {
+            el.style.opacity = '0'; // Blink out
+            setTimeout(() => {
+                setMsg();
+            }, 200);
+        }, 3000);
+    }
+
+    stopTrollMessages() {
+        if (this.trollInterval) {
+            clearInterval(this.trollInterval);
+            this.trollInterval = null;
         }
     }
 
     exitToMenu() {
         this.stop(); // Stops game and hides UI
+        this.stopTrollMessages(); // Ensure interval is cleared
+
+        // Reset Audio to Game/Menu Theme
+        if (window.audioManager) window.audioManager.playTrack('game');
 
         // 1. Force hide boot screen to prevent ghosting glitch
         const bootScreen = document.getElementById('boot-screen');

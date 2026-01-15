@@ -7,6 +7,7 @@ import { Renderer } from './Renderer.js';
 import { Tower } from '../entities/Tower.js';
 import { Enemy } from '../entities/Enemy.js';
 import { levels } from '../data/levels.js';
+import * as Loop from './Loop.js';
 
 export class Game {
     constructor(canvasId, levelId) {
@@ -37,7 +38,8 @@ export class Game {
         // Game State
         this.isRunning = true;
         this.credits = 600;
-        this.lives = 20;
+        this.lives = 100; // Changed from 20 to 100 for percentage-based HP
+        this.maxLives = 100;
 
         // Wave System
         this.waveIndex = 0;
@@ -62,6 +64,10 @@ export class Game {
 
         this.path = [];
         this.setupPath();
+
+        // DYNAMIC TILE SIZE: Calculate based on path dimensions to fit screen
+        this.calculateDynamicTileSize();
+
         this.setupInputs();
         this.setupUI();
 
@@ -72,13 +78,13 @@ export class Game {
         document.getElementById('game-hud').classList.remove('hidden');
         document.getElementById('main-menu').classList.remove('active'); // HIDE MENU
         // document.getElementById('btn-toggle-build').classList.remove('hidden'); // REMOVED
-        
+
         // Ensure build menu is visible and inspect menu is hidden
         const buildMenu = document.getElementById('build-menu');
         const inspectMenu = document.getElementById('inspect-menu');
         if (buildMenu) buildMenu.classList.remove('hidden');
         if (inspectMenu) inspectMenu.classList.add('hidden');
-        
+
         // Ensure start wave button is visible and set correctly
         const startWaveBtn = document.getElementById('btn-start-wave');
         if (startWaveBtn) {
@@ -89,7 +95,7 @@ export class Game {
         if (skipWaveBtn) {
             skipWaveBtn.classList.add('hidden');
         }
-        
+
         this.updateResourceDisplay();
 
         this.loop();
@@ -98,6 +104,10 @@ export class Game {
     // --- GAME CONTROL ---
     stop() {
         this.isRunning = false;
+        if (this.nextWaveTimerId) {
+            clearTimeout(this.nextWaveTimerId);
+            this.nextWaveTimerId = null;
+        }
         this.hideUI();
     }
 
@@ -122,150 +132,20 @@ export class Game {
     }
 
     update() {
-        // --- 1. WAVE LOGIC (Restored) ---
-        if (this.isWaveActive) {
-            // 1. Spawning Logic (Keep this as is)
-            if (this.enemiesRemainingToSpawn > 0) {
-                this.spawnTimer++;
-                const framesToWait = this.currentWaveConfig.interval / 16;
-                if (this.spawnTimer >= framesToWait) {
-                    this.spawnEnemy();
-                    this.spawnTimer = 0;
-                }
-
-                // 2. CHECK: Are all enemies dead?
-            } else if (this.enemies.length === 0) {
-
-                // Turn off the current wave flag so we don't trigger this 60 times a second
-                this.isWaveActive = false;
-
-                // Check if we have more waves left
-                if (this.waveIndex < this.waves.length) {
-                    console.log("Wave Cleared! Next wave incoming...");
-
-                    // HIDE the buttons so user doesn't click them by accident
-                    const startBtn = document.getElementById('btn-start-wave');
-                    if (startBtn) startBtn.classList.add('hidden');
-
-                    // AUTO-START NEXT WAVE (with a 2-second breather)
-                    setTimeout(() => {
-                        this.startNextWave();
-                    }, 2000);
-
-                } else {
-                    // No more waves? YOU WIN!
-                    this.handleVictory();
-                }
-            }
-
-            // 3. Skip Button Logic (Show if wave is almost done)
-            const skipBtn = document.getElementById('btn-skip-wave');
-            if (skipBtn) {
-                if (this.spawnQueue.length === 0 && this.enemies.length < 5 && this.enemies.length > 0) {
-                    skipBtn.classList.remove('hidden');
-                } else {
-                    skipBtn.classList.add('hidden');
-                }
-            }
-
-            this.waveTimer++;
-        }
-
-        this.troops = this.troops.filter(troop => {
-            troop.update();
-            return !troop.markedForDeletion;
-        });
-
-        // --- 2. UPDATE ENTITIES ---
-        this.towers.forEach(tower => tower.update());
-
-        this.projectiles = this.projectiles.filter(proj => {
-            proj.update();
-            return !proj.markedForDeletion;
-        });
-
-        this.enemies = this.enemies.filter(enemy => {
-            // Check Death
-            if (enemy.hp <= 0) {
-                this.credits += enemy.type.reward;
-                this.handleEnemyDeathEffects(enemy);
-                this.updateResourceDisplay();
-                return false;
-            }
-
-            // Update Enemy Logic (returns false if it reached the base)
-            const active = enemy.update();
-
-            if (!active) {
-                this.handleBaseHitWithoutSplice(enemy);
-                return false;
-            }
-            return true;
-        });
+        Loop.updateWaveLogic(this);
+        Loop.updateEntities(this);
     }
 
     handleEnemyDeathEffects(enemy) {
-        // Find towers that might have caused this or handle general area effects
-        // For simplicity, if an enemy dies with high burn, it might spread?
-        // Actually Level 4A logic says: "Burn spreads slightly after enemy death"
-        // We'll check if any Tower Level 4A is nearby or if we mark the enemy as "volatile"
-        if (enemy.effects.burn.stacks >= 5) {
-            this.enemies.forEach(other => {
-                if (other === enemy) return;
-                const dist = Math.sqrt(Math.pow(other.x - enemy.x, 2) + Math.pow(other.y - enemy.y, 2));
-                if (dist < 60) {
-                    other.applyBurn(2);
-                }
-            });
-        }
+        Loop.handleEnemyDeathEffects(this, enemy);
     }
 
     spawnEnemy() {
-        // 1. Get the next enemy type from the queue
-        if (this.spawnQueue.length === 0) return;
-        const typeKey = this.spawnQueue.shift();
-
-        // 2. Look it up in the ENEMIES object
-        const typeConfig = ENEMIES[typeKey];
-
-        // --- SAFETY CHECK ---
-        if (!typeConfig) {
-            console.error(`CRITICAL: Enemy type '${typeKey}' not defined in enemies.js!`);
-            this.enemiesRemainingToSpawn--; // Skip it so the game doesn't freeze
-            return;
-        }
-        // --------------------
-
-        const enemy = new Enemy(
-            this,
-            typeConfig,
-            this.path[0].x * this.tileSize + this.tileSize / 2,
-            this.path[0].y * this.tileSize + this.tileSize / 2
-        );
-
-        this.enemies.push(enemy);
-        this.enemiesRemainingToSpawn--;
+        Loop.spawnEnemy(this);
     }
 
     handleVictory() {
-        this.isRunning = false;
-
-        const screen = document.getElementById('end-screen');
-        const card = document.querySelector('.end-card');
-        const title = document.getElementById('end-title');
-        const reason = document.getElementById('end-reason');
-        const waves = document.getElementById('end-waves');
-
-        // 1. Set Content
-        title.innerText = "MISSION COMPLETE";
-        reason.innerText = "SECTOR SECURED";
-        waves.innerText = "ALL WAVES CLEARED";
-
-        // 2. Set Style (Green)
-        card.className = 'end-card victory';
-
-        // 3. Show Screen
-        screen.classList.remove('hidden');
+        Loop.handleVictory(this);
     }
 
     // js/core/Game.js
@@ -280,13 +160,15 @@ export class Game {
         this.currentWaveConfig = this.waves[this.waveIndex];
 
         // --- MIXED WAVE LOGIC ---
-        // Copy the composition array to our queue
-        this.spawnQueue = [...this.currentWaveConfig.composition];
-        this.enemiesRemainingToSpawn = this.spawnQueue.length;
+        // Prepend the new wave's composition to the current queue so they start spawning immediately
+        const nextEnemies = [...this.currentWaveConfig.composition];
+        this.spawnQueue.unshift(...nextEnemies);
 
         this.spawnTimer = 0;
         this.isWaveActive = true;
         this.waveTimer = 0;
+        this.skipUsedThisWave = false; // Reset skip button flag for new wave
+
         // --- NEW: ECONOMY CALCULATION ---
         let waveReward = this.currentWaveConfig.reward;
         let towerIncome = 0;
@@ -308,7 +190,7 @@ export class Game {
         this.waveIndex++;
 
         document.getElementById('res-wave').innerText = this.waveIndex;
-        
+
         // Hide wave buttons during wave
         const startBtn = document.getElementById('btn-start-wave');
         const skipBtn = document.getElementById('btn-skip-wave');
@@ -319,7 +201,7 @@ export class Game {
                 startBtn.innerText = `INITIALIZE WAVE ${this.waveIndex + 1}`;
             }
         }
-        if (skipBtn) skipBtn.classList.add('hidden');
+        if (skipBtn) skipBtn.classList.add('hidden'); // Hide skip button at wave start
     }
 
     setupPath() {
@@ -336,28 +218,42 @@ export class Game {
         }
     }
 
-    setupUI() {
-        // --- UPGRADE PATH A ---
-        const btnUpgradeA = document.getElementById('btn-upgrade-a');
-        if (btnUpgradeA) {
-            btnUpgradeA.onclick = () => {
-                if (this.selectedTower) {
-                    this.selectedTower.upgrade('A');
-                    this.updateInspectMenu(); // Refresh UI to show new stats/costs
-                }
-            };
+    calculateDynamicTileSize() {
+        if (this.path.length === 0) {
+            this.tileSize = 60; // Default fallback
+            return;
         }
 
-        // --- UPGRADE PATH B ---
-        const btnUpgradeB = document.getElementById('btn-upgrade-b');
-        if (btnUpgradeB) {
-            btnUpgradeB.onclick = () => {
-                if (this.selectedTower) {
-                    this.selectedTower.upgrade('B');
-                    this.updateInspectMenu();
-                }
-            };
-        }
+        // Find the bounds of the path
+        let maxX = 0;
+        let maxY = 0;
+        this.path.forEach(point => {
+            if (point.x > maxX) maxX = point.x;
+            if (point.y > maxY) maxY = point.y;
+        });
+
+        // Add padding for the base (1.5 tiles) and some margin
+        maxX += 2; // Extra space for base
+        maxY += 2;
+
+        // Calculate tile size to fit screen (with some margin for UI)
+        const availableWidth = this.width - 100; // Margin for UI
+        const availableHeight = this.height - 300; // Margin for HUD and controls
+
+        const tileSizeByWidth = Math.floor(availableWidth / maxX);
+        const tileSizeByHeight = Math.floor(availableHeight / maxY);
+
+        // Use the smaller of the two to ensure both dimensions fit
+        this.tileSize = Math.min(tileSizeByWidth, tileSizeByHeight, 80); // Max 80px for visibility
+        this.tileSize = Math.max(this.tileSize, 30); // Min 30px so towers are still visible
+
+        console.log(`Dynamic tile size: ${this.tileSize}px (Map: ${maxX}x${maxY} tiles, Screen: ${this.width}x${this.height}px)`);
+    }
+
+    setupUI() {
+        // --- LISTENERS REMOVED ---
+        // Duplicate/Insecure upgrade listeners were located here.
+        // All upgrade logic is now centralized in setupInspectListeners() and handleUpgrade().
 
         // --- OTHER BUTTONS ---
         const btnSell = document.getElementById('btn-sell');
@@ -405,58 +301,14 @@ export class Game {
         if (btnSkipWave) {
             btnSkipWave.onclick = (e) => {
                 e.stopPropagation();
-                if (!this.isWaveActive) return;
-                
-                // Give bonus rewards for remaining enemies in spawn queue
-                let bonusRewards = 0;
-                if (this.spawnQueue && this.spawnQueue.length > 0) {
-                    // Calculate rewards for skipped enemies
-                    this.spawnQueue.forEach(enemyKey => {
-                        const enemyType = ENEMIES[enemyKey];
-                        if (enemyType) {
-                            // Give half reward for skipped enemies as bonus
-                            bonusRewards += Math.floor(enemyType.reward * 0.5);
-                        }
-                    });
-                }
-                
-                // Give rewards for current enemies on screen
-                this.enemies.forEach(enemy => {
-                    if (enemy.type && enemy.type.reward) {
-                        this.credits += enemy.type.reward;
-                    }
-                    // Force kill enemy immediately
-                    enemy.hp = 0;
-                });
-                
-                // Add bonus rewards
-                if (bonusRewards > 0) {
-                    this.credits += bonusRewards;
-                    console.log(`Skip bonus: +${bonusRewards} credits`);
-                }
-                
-                // Clear spawn queue and stop wave
-                this.enemiesRemainingToSpawn = 0;
-                this.spawnQueue = [];
-                this.isWaveActive = false; // Stop the wave immediately
-                
-                // Force remove all enemies immediately (before next update cycle)
-                this.enemies.length = 0;
-                
-                // Update resource display
-                this.updateResourceDisplay();
-                
-                // Hide skip button
+                console.log("[SKIP BUTTON] Clicked! Starting next wave immediately.");
+
+                // standard TD behavior: button just triggers the next wave logic immediately
+                this.startNextWave();
+
+                // Hide button after use to prevent accidental double-clicks, 
+                // the update loop will show it again when conditions are met for the newly started wave
                 btnSkipWave.classList.add('hidden');
-                
-                // Check if there are more waves and prepare next wave button
-                if (this.waveIndex < this.waves.length) {
-                    const startBtn = document.getElementById('btn-start-wave');
-                    if (startBtn) {
-                        startBtn.classList.remove('hidden');
-                        startBtn.innerText = `INITIALIZE WAVE ${this.waveIndex + 1}`;
-                    }
-                }
             };
         }
     }
@@ -479,17 +331,17 @@ export class Game {
             slotBtn.className = 'slot-btn';
             slotBtn.setAttribute('data-tower-key', key);
             slotBtn.setAttribute('title', `${towerType.name} - $${towerType.cost}`);
-            
+
             // Create slot key indicator
             const slotKey = document.createElement('span');
             slotKey.className = 'slot-key';
             slotKey.textContent = index + 1;
-            
+
             // Create tower icon
             const slotIcon = document.createElement('div');
             slotIcon.className = 'slot-icon';
             slotIcon.style.background = towerType.color;
-            
+
             // Create tower name (shortened)
             const towerName = document.createElement('span');
             towerName.textContent = towerType.name.split(' ')[0];
@@ -497,7 +349,7 @@ export class Game {
             towerName.style.marginTop = '2px';
             towerName.style.textAlign = 'center';
             towerName.style.lineHeight = '1';
-            
+
             // Create cost indicator
             const towerCost = document.createElement('span');
             towerCost.textContent = `$${towerType.cost}`;
@@ -526,82 +378,7 @@ export class Game {
         }
     }
 
-    updateInspectMenu() {
-        if (!this.selectedTower) return;
-        const tower = this.selectedTower;
 
-        // 1. Update Basic Stats
-        document.getElementById('inspect-name').innerText = tower.type.name;
-        document.getElementById('inspect-level').innerText = `LVL ${tower.level}`;
-        document.getElementById('inspect-dmg').innerText = Math.floor(tower.damage);
-        document.getElementById('inspect-range').innerText = Math.floor(tower.range);
-        document.getElementById('inspect-speed').innerText = (tower.cooldown / 1000).toFixed(1) + 's';
-
-        // 2. Update Sell Price
-        document.getElementById('btn-sell').innerText = `SELL ($${tower.getSellValue()})`;
-
-        // 3. Update Path A Button
-        const btnA = document.getElementById('btn-upgrade-a');
-        const costA = document.getElementById('cost-a');
-        const nameA = document.getElementById('path-a-name');
-
-        // Get Next Upgrade Info
-        if (tower.canUpgrade('A')) {
-            const nextCost = tower.getUpgradeCost('A');
-            // Get name of next level from tower data
-            const nextLvlIdx = tower.pathA; // 0 = Level 1 (Initial), so index 0 is Level 2 upgrade
-            const nextLvlName = tower.type.paths.A.levels[nextLvlIdx]?.name || 'MAXED';
-
-            costA.innerText = `($${nextCost})`;
-            nameA.innerText = nextLvlName;
-            btnA.classList.remove('locked', 'maxed');
-
-            // Check Affordability
-            if (this.credits < nextCost) {
-                btnA.classList.add('locked'); // Too expensive
-            }
-        } else {
-            // Maxed or Locked
-            if (tower.pathLocked && tower.pathLocked !== 'A') {
-                btnA.innerText = "LOCKED";
-                nameA.innerText = "PATH CLOSED";
-                btnA.classList.add('locked');
-            } else {
-                btnA.innerText = "MAX LEVEL";
-                nameA.innerText = "COMPLETED";
-                btnA.classList.add('maxed');
-            }
-            costA.innerText = "";
-        }
-
-        // 4. Update Path B Button (Same Logic)
-        const btnB = document.getElementById('btn-upgrade-b');
-        const costB = document.getElementById('cost-b');
-        const nameB = document.getElementById('path-b-name');
-
-        if (tower.canUpgrade('B')) {
-            const nextCost = tower.getUpgradeCost('B');
-            const nextLvlIdx = tower.pathB;
-            const nextLvlName = tower.type.paths.B.levels[nextLvlIdx]?.name || 'MAXED';
-
-            costB.innerText = `($${nextCost})`;
-            nameB.innerText = nextLvlName;
-            btnB.classList.remove('locked', 'maxed');
-
-            if (this.credits < nextCost) btnB.classList.add('locked');
-        } else {
-            if (tower.pathLocked && tower.pathLocked !== 'B') {
-                btnB.innerText = "LOCKED";
-                nameB.innerText = "PATH CLOSED";
-                btnB.classList.add('locked');
-            } else {
-                btnB.innerText = "MAX LEVEL";
-                nameB.innerText = "COMPLETED";
-                btnB.classList.add('maxed');
-            }
-            costB.innerText = "";
-        }
-    }
 
     handleSlotClick(tower, btnElement) {
         if (this.selectedTowerType === tower) {
@@ -664,10 +441,27 @@ export class Game {
 
     updateResourceDisplay() {
         const creditEl = document.getElementById('res-credits');
-        const livesEl = document.getElementById('res-lives');
+        const hpBar = document.getElementById('hp-bar');
+        const hpText = document.getElementById('hp-bar-text');
 
         if (creditEl) creditEl.innerText = this.credits;
-        if (livesEl) livesEl.innerText = this.lives;
+
+        // Update HP Bar
+        if (hpBar && hpText) {
+            const percentage = (this.lives / this.maxLives) * 100;
+            hpBar.style.width = `${percentage}%`;
+            hpText.innerText = `${this.lives}/${this.maxLives}`;
+
+            // Update color class based on HP percentage
+            hpBar.className = 'hp-bar-fill';
+            if (percentage > 60) {
+                hpBar.classList.add('hp-high');
+            } else if (percentage > 30) {
+                hpBar.classList.add('hp-medium');
+            } else {
+                hpBar.classList.add('hp-low');
+            }
+        }
     }
 
     checkPlacement(x, y) {
@@ -725,15 +519,27 @@ export class Game {
     }
 
     placeTower() {
-        if (this.credits < this.selectedTowerType.cost) return;
+        if (!this.selectedTowerType) return; // Added from instruction, assuming it's a new guard
 
         const tx = this.hoveredTile.x + this.tileSize / 2;
         const ty = this.hoveredTile.y + this.tileSize / 2;
 
-        // Validate Placement
-        if (!this.checkPlacement(tx, ty)) {
-            console.log("Invalid Placement!");
-            // Optional: Play error sound
+        // Check placement validity
+        if (!this.checkPlacement(tx, ty)) { // Using existing checkPlacement
+            // console.warn("Invalid placement");
+            console.log("Invalid Placement!"); // Kept original log
+            return;
+        }
+
+        const cost = Number(this.selectedTowerType.cost);
+        if (this.credits < cost) {
+            console.warn("Insufficient funds for placement");
+            // Flash red
+            const t = document.getElementById('res-credits');
+            if (t) {
+                t.style.color = 'red';
+                setTimeout(() => t.style.color = '', 500);
+            }
             return;
         }
 
@@ -744,8 +550,8 @@ export class Game {
         );
 
         this.towers.push(newTower);
-        this.credits -= this.selectedTowerType.cost;
-
+        // Deduct credits
+        this.credits -= cost;
         this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
 
         // Manual Deselect Logic
@@ -756,44 +562,11 @@ export class Game {
     // --- NEW HELPER FUNCTIONS ---
 
     handleBaseHit(enemyIndex) {
-        // 1. Lose Life
-        this.lives--;
-
-        // 2. Update UI
-        this.updateResourceDisplay();
-
-        // 3. Visual Feedback (Screen Flash Red)
-        document.body.style.boxShadow = "inset 0 0 50px rgba(255, 0, 0, 0.5)";
-        setTimeout(() => {
-            document.body.style.boxShadow = "";
-        }, 100);
-
-        // 4. Remove Enemy
-        this.enemies.splice(enemyIndex, 1);
-
-        // 5. Game Over Check
-        if (this.lives <= 0) {
-            this.gameOver();
-        }
+        Loop.handleBaseHit(this, enemyIndex);
     }
 
     handleBaseHitWithoutSplice(enemy) {
-        // 1. Lose Life
-        this.lives--;
-
-        // 2. Update UI
-        this.updateResourceDisplay();
-
-        // 3. Visual Feedback (Screen Flash Red)
-        document.body.style.boxShadow = "inset 0 0 50px rgba(255, 0, 0, 0.5)";
-        setTimeout(() => {
-            document.body.style.boxShadow = "";
-        }, 100);
-
-        // 4. Game Over Check
-        if (this.lives <= 0) {
-            this.gameOver();
-        }
+        Loop.handleBaseHit(this, enemy);
     }
 
     gameOver() {
@@ -817,6 +590,79 @@ export class Game {
         screen.classList.remove('hidden');
     }
 
+    handleUpgrade(path) {
+        if (!this.selectedTower) return;
+        const tower = this.selectedTower;
+
+        if (!tower.canUpgrade(path)) {
+            console.warn("Upgrade refused: Max level or locked path.");
+            return;
+        }
+
+        const rawCost = tower.getUpgradeCost(path);
+        const cost = Number(rawCost);
+
+        console.log(`[Game] Attempting Upgrade: Tower=${tower.id}, Path=${path}, Cost=${cost}, Credits=${this.credits}`);
+
+        if (isNaN(cost) || cost <= 0) {
+            console.error(`[Game] Upgrade Error: Invalid cost calculated (${rawCost}).`);
+            return;
+        }
+
+        if (this.credits < cost) {
+            console.warn(`[Game] Upgrade Refused: Credits (${this.credits}) < Cost (${cost})`);
+            // Optional: Play error sound or flash credits red
+            const creditsEl = document.getElementById('res-credits');
+            if (creditsEl) {
+                creditsEl.style.color = 'red';
+                setTimeout(() => creditsEl.style.color = '', 500);
+            }
+            return;
+        }
+
+        console.log(`Processing upgrade for Tower ${tower.id}: Path ${path}, Cost ${cost}`);
+
+        // Transaction
+        this.credits -= cost;
+        this.updateResourceDisplay(); // Sync Top Bar
+
+        // Execute Upgrade
+        tower.upgrade(path);
+
+        // Refresh Inspector
+        this.updateInspectMenu();
+    }
+
+    sellTower(tower) {
+        if (!tower) return;
+
+        // 1. Calculate Refund (50% of base + upgrades)
+        // Simple formula: base cost + logic for upgrades if tracked
+        // For now, let's refund 50% of base cost + some heuristic for upgrades
+        // Or if we want to be precise, we need to track total investment.
+        // Let's go simple: 50% of current value
+
+        // Approximate total value
+        let totalValue = tower.type.cost;
+        // Add upgrade values if needed, but for now base is fine or strict
+        // Better:
+        const refund = Math.floor(tower.type.cost * 0.5);
+
+        // 2. Add Credits
+        this.credits += refund;
+        this.updateResourceDisplay();
+
+        // 3. Remove from Array
+        const index = this.towers.indexOf(tower);
+        if (index > -1) {
+            this.towers.splice(index, 1);
+        }
+
+        console.log(`Sold tower for ${refund} credits.`);
+
+        // 4. UI Feedback (Floating Text?) - Optional
+    }
+
     selectTower(tower) {
         this.selectedTower = tower;
         this.selectedTowerType = null; // Prioritize inspect over build
@@ -825,11 +671,11 @@ export class Game {
         // UI Swap: Hide Build, Show Inspect Side Panel
         const buildMenu = document.getElementById('build-menu');
         const inspectMenu = document.getElementById('inspect-menu');
-        
+
         if (buildMenu) buildMenu.classList.add('hidden');
         if (inspectMenu) inspectMenu.classList.remove('hidden'); // Side panel slides in
 
-        this.updateInspectUI();
+        this.updateInspectMenu();
     }
 
     deselectTower() {
@@ -844,12 +690,13 @@ export class Game {
         if (inspectMenu) inspectMenu.classList.add('hidden'); // Side panel slides out
     }
 
-    updateInspectUI() {
+    updateInspectMenu() {
         if (!this.selectedTower) return;
         const t = this.selectedTower;
 
         // 1. Name & Stats
         document.getElementById('inspect-name').innerText = `${t.type.name} (Lvl ${t.level})`;
+        document.getElementById('inspect-level').innerText = `LVL ${t.level}`;
 
         // Use the simplified Horizontal stats for the bar
         document.getElementById('inspect-stats').innerHTML = `
@@ -864,37 +711,44 @@ export class Game {
         const btnA = document.getElementById('btn-upgrade-a');
         const btnB = document.getElementById('btn-upgrade-b');
 
-        if (t.type.id === 'laser') {
+        if (t.type.paths) {
             // --- LASER BRANCHING LOGIC ---
             upgBtn.classList.add('hidden'); // Hide standard
             dualContainer.classList.remove('hidden'); // Show dual
             dualContainer.style.display = 'flex';
 
             // Path A
-            if (t.pathA >= 4 || (t.pathLocked && t.pathLocked !== 'A')) {
+            if (t.pathA >= 4) {
                 btnA.disabled = true;
-                btnA.innerHTML = t.pathLocked !== 'A' ? "LOCKED" : "MAX";
+                btnA.innerHTML = "MAX";
+                btnA.classList.add('locked');
+            } else if (!t.canUpgrade('A')) {
+                btnA.disabled = true;
+                btnA.innerHTML = "LOCKED";
                 btnA.classList.add('locked');
             } else {
                 btnA.disabled = false;
                 btnA.classList.remove('locked');
                 const costA = t.getUpgradeCost('A');
-                // Get name of next upgrade
-                const nextNameA = t.type.paths.A.levels[t.pathA].name;
+                const nextNameA = t.type.paths.A.levels[t.pathA]?.name || "Upgrade";
                 btnA.innerHTML = `${nextNameA}<br><span style="color:var(--neon-blue)">${costA}</span>`;
                 btnA.style.opacity = this.credits >= costA ? '1' : '0.5';
             }
 
             // Path B
-            if (t.pathB >= 4 || (t.pathLocked && t.pathLocked !== 'B')) {
+            if (t.pathB >= 4) {
                 btnB.disabled = true;
-                btnB.innerHTML = t.pathLocked !== 'B' ? "LOCKED" : "MAX";
+                btnB.innerHTML = "MAX";
+                btnB.classList.add('locked');
+            } else if (!t.canUpgrade('B')) {
+                btnB.disabled = true;
+                btnB.innerHTML = "LOCKED";
                 btnB.classList.add('locked');
             } else {
                 btnB.disabled = false;
                 btnB.classList.remove('locked');
                 const costB = t.getUpgradeCost('B');
-                const nextNameB = t.type.paths.B.levels[t.pathB].name;
+                const nextNameB = t.type.paths.B.levels[t.pathB]?.name || "Upgrade";
                 btnB.innerHTML = `${nextNameB}<br><span style="color:var(--neon-blue)">${costB}</span>`;
                 btnB.style.opacity = this.credits >= costB ? '1' : '0.5';
             }
@@ -927,14 +781,21 @@ export class Game {
     setupInspectListeners() {
         console.log("Setting up Inspect Menu Listeners...");
 
+        // --- STANDARD UPGRADE ---
+        const btnUpgrade = document.getElementById('btn-upgrade');
+        if (btnUpgrade) {
+            btnUpgrade.onclick = (e) => {
+                if (e) e.stopPropagation();
+                this.handleUpgrade(); // No path for standard
+            };
+        }
+
         // --- UPGRADE PATH A ---
         const btnUpgradeA = document.getElementById('btn-upgrade-a');
         if (btnUpgradeA) {
-            btnUpgradeA.onclick = () => {
-                if (this.selectedTower) {
-                    this.selectedTower.upgrade('A');
-                    this.updateInspectMenu();
-                }
+            btnUpgradeA.onclick = (e) => {
+                if (e) e.stopPropagation();
+                this.handleUpgrade('A');
             };
         } else {
             console.warn("UI Missing: btn-upgrade-a");
@@ -943,11 +804,9 @@ export class Game {
         // --- UPGRADE PATH B ---
         const btnUpgradeB = document.getElementById('btn-upgrade-b');
         if (btnUpgradeB) {
-            btnUpgradeB.onclick = () => {
-                if (this.selectedTower) {
-                    this.selectedTower.upgrade('B');
-                    this.updateInspectMenu();
-                }
+            btnUpgradeB.onclick = (e) => {
+                if (e) e.stopPropagation();
+                this.handleUpgrade('B');
             };
         } else {
             console.warn("UI Missing: btn-upgrade-b");

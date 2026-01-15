@@ -129,6 +129,31 @@ window.onload = () => {
             console.log("Particles toggled:", e.target.checked);
         });
     }
+
+    // --- RETURN TO MENU BUTTON (from game over screen) ---
+    const btnReturnMenu = document.getElementById('btn-return-menu');
+    if (btnReturnMenu) {
+        btnReturnMenu.onclick = (e) => {
+            e.stopPropagation();
+            // Hide end screen
+            const endScreen = document.getElementById('end-screen');
+            if (endScreen) endScreen.classList.add('hidden');
+            
+            // Call exit to menu if game exists
+            if (window.game && typeof window.game.exitToMenu === 'function') {
+                window.game.exitToMenu();
+            } else {
+                // Fallback: Just show menu if game doesn't exist
+                const mainMenu = document.getElementById('main-menu');
+                const gameHud = document.getElementById('game-hud');
+                if (mainMenu) mainMenu.classList.add('active');
+                if (gameHud) gameHud.classList.add('hidden');
+                if (window.menuBackground && typeof window.menuBackground.start === 'function') {
+                    window.menuBackground.start();
+                }
+            }
+        };
+    }
 }
 // A safer way to open windows
 function openWindow(id) {

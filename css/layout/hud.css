@@ -1,3 +1,100 @@
+/* HP BAR OUTER CONTAINER (Positioned below top panel) */
+.hp-bar-container-outer {
+    position: absolute;
+    top: 45px;
+    /* Just below the resource bar */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--neon-blue);
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    z-index: 15;
+    pointer-events: none;
+}
+
+/* HP BAR STYLES */
+.hp-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 200px;
+}
+
+.hp-bar-label {
+    font-size: 0.7rem;
+    color: var(--neon-blue);
+    text-shadow: 0 0 5px var(--neon-blue);
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.hp-bar-wrapper {
+    position: relative;
+    width: 100%;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--neon-blue);
+    box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.3);
+    overflow: hidden;
+}
+
+.hp-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #00ff88, #00ffcc);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+/* Color transitions based on HP percentage (set via JS) */
+.hp-bar-fill.hp-high {
+    background: linear-gradient(90deg, #00ff88, #00ffcc);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+}
+
+.hp-bar-fill.hp-medium {
+    background: linear-gradient(90deg, #ffaa00, #ffdd00);
+    box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
+}
+
+.hp-bar-fill.hp-low {
+    background: linear-gradient(90deg, #ff3300, #ff6600);
+    box-shadow: 0 0 10px rgba(255, 51, 0, 0.8);
+    animation: hp-pulse 0.5s infinite;
+}
+
+@keyframes hp-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.hp-bar-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 24px;
+    font-size: 0.8rem;
+    color: white;
+    text-shadow: 0 0 3px black, 0 0 5px black;
+    z-index: 2;
+    font-weight: bold;
+    pointer-events: none;
+}
+
 .wave-controls {
     position: absolute;
     bottom: 150px;

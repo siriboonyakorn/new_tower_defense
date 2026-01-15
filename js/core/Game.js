@@ -72,6 +72,24 @@ export class Game {
         document.getElementById('game-hud').classList.remove('hidden');
         document.getElementById('main-menu').classList.remove('active'); // HIDE MENU
         // document.getElementById('btn-toggle-build').classList.remove('hidden'); // REMOVED
+        
+        // Ensure build menu is visible and inspect menu is hidden
+        const buildMenu = document.getElementById('build-menu');
+        const inspectMenu = document.getElementById('inspect-menu');
+        if (buildMenu) buildMenu.classList.remove('hidden');
+        if (inspectMenu) inspectMenu.classList.add('hidden');
+        
+        // Ensure start wave button is visible and set correctly
+        const startWaveBtn = document.getElementById('btn-start-wave');
+        if (startWaveBtn) {
+            startWaveBtn.classList.remove('hidden');
+            startWaveBtn.innerText = 'INITIALIZE WAVE 1';
+        }
+        const skipWaveBtn = document.getElementById('btn-skip-wave');
+        if (skipWaveBtn) {
+            skipWaveBtn.classList.add('hidden');
+        }
+        
         this.updateResourceDisplay();
 
         this.loop();
@@ -290,8 +308,18 @@ export class Game {
         this.waveIndex++;
 
         document.getElementById('res-wave').innerText = this.waveIndex;
-        document.getElementById('btn-start-wave').classList.add('hidden');
-        document.getElementById('btn-skip-wave').classList.add('hidden');
+        
+        // Hide wave buttons during wave
+        const startBtn = document.getElementById('btn-start-wave');
+        const skipBtn = document.getElementById('btn-skip-wave');
+        if (startBtn) {
+            startBtn.classList.add('hidden');
+            // Update button text for next wave
+            if (this.waveIndex < this.waves.length) {
+                startBtn.innerText = `INITIALIZE WAVE ${this.waveIndex + 1}`;
+            }
+        }
+        if (skipBtn) skipBtn.classList.add('hidden');
     }
 
     setupPath() {
@@ -309,55 +337,270 @@ export class Game {
     }
 
     setupUI() {
-        const startBtn = document.getElementById('btn-start-wave');
-        const skipBtn = document.getElementById('btn-skip-wave');
-        const returnBtn = document.getElementById('btn-return-menu');
-        if (returnBtn) {
-            returnBtn.onclick = () => {
-                this.exitToMenu();
+        // --- UPGRADE PATH A ---
+        const btnUpgradeA = document.getElementById('btn-upgrade-a');
+        if (btnUpgradeA) {
+            btnUpgradeA.onclick = () => {
+                if (this.selectedTower) {
+                    this.selectedTower.upgrade('A');
+                    this.updateInspectMenu(); // Refresh UI to show new stats/costs
+                }
             };
         }
-        // Wire up Wave Buttons
-        if (startBtn) startBtn.onclick = () => this.startNextWave();
-        if (skipBtn) skipBtn.onclick = () => this.startNextWave();
 
-        // --- NEW: BOTTOM HOTBAR GENERATION ---
-        const slotsContainer = document.querySelector('.hotbar-slots');
-        slotsContainer.innerHTML = '';
+        // --- UPGRADE PATH B ---
+        const btnUpgradeB = document.getElementById('btn-upgrade-b');
+        if (btnUpgradeB) {
+            btnUpgradeB.onclick = () => {
+                if (this.selectedTower) {
+                    this.selectedTower.upgrade('B');
+                    this.updateInspectMenu();
+                }
+            };
+        }
 
-        const hotkeys = ['1', '2', '3', '4', '5'];
-        let idx = 0;
+        // --- OTHER BUTTONS ---
+        const btnSell = document.getElementById('btn-sell');
+        if (btnSell) {
+            btnSell.onclick = () => {
+                if (this.selectedTower) {
+                    this.sellTower(this.selectedTower);
+                    this.deselectTower();
+                }
+            };
+        }
 
-        Object.values(TOWER_TYPES).forEach(tower => {
-            if (idx >= 5) return; // Limit to 5 for now
+        const btnTarget = document.getElementById('btn-target');
+        if (btnTarget) {
+            btnTarget.onclick = () => {
+                if (this.selectedTower) {
+                    const newMode = this.selectedTower.cycleTargetMode();
+                    btnTarget.innerText = `TARGET: ${newMode}`;
+                }
+            };
+        }
 
-            const slot = document.createElement('div');
-            slot.className = 'slot-btn';
+        // Close / Deselect Button
+        const btnClose = document.getElementById('btn-close');
+        // Note: Check if your HTML uses 'btn-close' or 'btn-deselect'
+        if (btnClose) {
+            btnClose.onclick = () => {
+                this.deselectTower();
+            };
+        }
 
-            // Add Hotkey Indicator
-            const key = hotkeys[idx];
+        // Generate tower slot buttons in build menu
+        this.generateTowerSlots();
 
-            slot.innerHTML = `
-                <span class="slot-key">${key}</span>
-                <div class="slot-icon" style="background:${tower.color}"></div>
-                <div class="slot-cost">${tower.cost}</div>
-            `;
-
-            slot.onclick = (e) => {
+        // --- WAVE CONTROLS ---
+        const btnStartWave = document.getElementById('btn-start-wave');
+        if (btnStartWave) {
+            btnStartWave.onclick = (e) => {
                 e.stopPropagation();
-                this.handleSlotClick(tower, slot);
+                this.startNextWave();
+            };
+        }
+
+        const btnSkipWave = document.getElementById('btn-skip-wave');
+        if (btnSkipWave) {
+            btnSkipWave.onclick = (e) => {
+                e.stopPropagation();
+                if (!this.isWaveActive) return;
+                
+                // Give bonus rewards for remaining enemies in spawn queue
+                let bonusRewards = 0;
+                if (this.spawnQueue && this.spawnQueue.length > 0) {
+                    // Calculate rewards for skipped enemies
+                    this.spawnQueue.forEach(enemyKey => {
+                        const enemyType = ENEMIES[enemyKey];
+                        if (enemyType) {
+                            // Give half reward for skipped enemies as bonus
+                            bonusRewards += Math.floor(enemyType.reward * 0.5);
+                        }
+                    });
+                }
+                
+                // Give rewards for current enemies on screen
+                this.enemies.forEach(enemy => {
+                    if (enemy.type && enemy.type.reward) {
+                        this.credits += enemy.type.reward;
+                    }
+                    // Force kill enemy immediately
+                    enemy.hp = 0;
+                });
+                
+                // Add bonus rewards
+                if (bonusRewards > 0) {
+                    this.credits += bonusRewards;
+                    console.log(`Skip bonus: +${bonusRewards} credits`);
+                }
+                
+                // Clear spawn queue and stop wave
+                this.enemiesRemainingToSpawn = 0;
+                this.spawnQueue = [];
+                this.isWaveActive = false; // Stop the wave immediately
+                
+                // Force remove all enemies immediately (before next update cycle)
+                this.enemies.length = 0;
+                
+                // Update resource display
+                this.updateResourceDisplay();
+                
+                // Hide skip button
+                btnSkipWave.classList.add('hidden');
+                
+                // Check if there are more waves and prepare next wave button
+                if (this.waveIndex < this.waves.length) {
+                    const startBtn = document.getElementById('btn-start-wave');
+                    if (startBtn) {
+                        startBtn.classList.remove('hidden');
+                        startBtn.innerText = `INITIALIZE WAVE ${this.waveIndex + 1}`;
+                    }
+                }
+            };
+        }
+    }
+
+    generateTowerSlots() {
+        const hotbarSlots = document.querySelector('.hotbar-slots');
+        if (!hotbarSlots) {
+            console.warn('Build menu slots container not found!');
+            return;
+        }
+
+        // Clear existing slots
+        hotbarSlots.innerHTML = '';
+
+        // Generate a slot button for each tower type
+        const towerKeys = Object.keys(TOWER_TYPES);
+        towerKeys.forEach((key, index) => {
+            const towerType = TOWER_TYPES[key];
+            const slotBtn = document.createElement('div');
+            slotBtn.className = 'slot-btn';
+            slotBtn.setAttribute('data-tower-key', key);
+            slotBtn.setAttribute('title', `${towerType.name} - $${towerType.cost}`);
+            
+            // Create slot key indicator
+            const slotKey = document.createElement('span');
+            slotKey.className = 'slot-key';
+            slotKey.textContent = index + 1;
+            
+            // Create tower icon
+            const slotIcon = document.createElement('div');
+            slotIcon.className = 'slot-icon';
+            slotIcon.style.background = towerType.color;
+            
+            // Create tower name (shortened)
+            const towerName = document.createElement('span');
+            towerName.textContent = towerType.name.split(' ')[0];
+            towerName.style.fontSize = '0.55rem';
+            towerName.style.marginTop = '2px';
+            towerName.style.textAlign = 'center';
+            towerName.style.lineHeight = '1';
+            
+            // Create cost indicator
+            const towerCost = document.createElement('span');
+            towerCost.textContent = `$${towerType.cost}`;
+            towerCost.style.fontSize = '0.5rem';
+            towerCost.style.color = '#ffd700';
+            towerCost.style.marginTop = '2px';
+            towerCost.style.lineHeight = '1';
+
+            slotBtn.appendChild(slotKey);
+            slotBtn.appendChild(slotIcon);
+            slotBtn.appendChild(towerName);
+            slotBtn.appendChild(towerCost);
+
+            slotBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.handleSlotClick(towerType, slotBtn);
             };
 
-            // Bind Keyboard Shortcut
-            window.addEventListener('keydown', (e) => {
-                if (e.key === key && !this.selectedTower) { // Only if not inspecting
-                    this.handleSlotClick(tower, slot);
-                }
-            });
-
-            slotsContainer.appendChild(slot);
-            idx++;
+            hotbarSlots.appendChild(slotBtn);
         });
+
+        // Ensure build menu is visible
+        const buildMenu = document.getElementById('build-menu');
+        if (buildMenu) {
+            buildMenu.classList.remove('hidden');
+        }
+    }
+
+    updateInspectMenu() {
+        if (!this.selectedTower) return;
+        const tower = this.selectedTower;
+
+        // 1. Update Basic Stats
+        document.getElementById('inspect-name').innerText = tower.type.name;
+        document.getElementById('inspect-level').innerText = `LVL ${tower.level}`;
+        document.getElementById('inspect-dmg').innerText = Math.floor(tower.damage);
+        document.getElementById('inspect-range').innerText = Math.floor(tower.range);
+        document.getElementById('inspect-speed').innerText = (tower.cooldown / 1000).toFixed(1) + 's';
+
+        // 2. Update Sell Price
+        document.getElementById('btn-sell').innerText = `SELL ($${tower.getSellValue()})`;
+
+        // 3. Update Path A Button
+        const btnA = document.getElementById('btn-upgrade-a');
+        const costA = document.getElementById('cost-a');
+        const nameA = document.getElementById('path-a-name');
+
+        // Get Next Upgrade Info
+        if (tower.canUpgrade('A')) {
+            const nextCost = tower.getUpgradeCost('A');
+            // Get name of next level from tower data
+            const nextLvlIdx = tower.pathA; // 0 = Level 1 (Initial), so index 0 is Level 2 upgrade
+            const nextLvlName = tower.type.paths.A.levels[nextLvlIdx]?.name || 'MAXED';
+
+            costA.innerText = `($${nextCost})`;
+            nameA.innerText = nextLvlName;
+            btnA.classList.remove('locked', 'maxed');
+
+            // Check Affordability
+            if (this.credits < nextCost) {
+                btnA.classList.add('locked'); // Too expensive
+            }
+        } else {
+            // Maxed or Locked
+            if (tower.pathLocked && tower.pathLocked !== 'A') {
+                btnA.innerText = "LOCKED";
+                nameA.innerText = "PATH CLOSED";
+                btnA.classList.add('locked');
+            } else {
+                btnA.innerText = "MAX LEVEL";
+                nameA.innerText = "COMPLETED";
+                btnA.classList.add('maxed');
+            }
+            costA.innerText = "";
+        }
+
+        // 4. Update Path B Button (Same Logic)
+        const btnB = document.getElementById('btn-upgrade-b');
+        const costB = document.getElementById('cost-b');
+        const nameB = document.getElementById('path-b-name');
+
+        if (tower.canUpgrade('B')) {
+            const nextCost = tower.getUpgradeCost('B');
+            const nextLvlIdx = tower.pathB;
+            const nextLvlName = tower.type.paths.B.levels[nextLvlIdx]?.name || 'MAXED';
+
+            costB.innerText = `($${nextCost})`;
+            nameB.innerText = nextLvlName;
+            btnB.classList.remove('locked', 'maxed');
+
+            if (this.credits < nextCost) btnB.classList.add('locked');
+        } else {
+            if (tower.pathLocked && tower.pathLocked !== 'B') {
+                btnB.innerText = "LOCKED";
+                nameB.innerText = "PATH CLOSED";
+                btnB.classList.add('locked');
+            } else {
+                btnB.innerText = "MAX LEVEL";
+                nameB.innerText = "COMPLETED";
+                btnB.classList.add('maxed');
+            }
+            costB.innerText = "";
+        }
     }
 
     handleSlotClick(tower, btnElement) {
@@ -579,9 +822,12 @@ export class Game {
         this.selectedTowerType = null; // Prioritize inspect over build
         document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('active'));
 
-        // UI Swap: Hide Build, Show Inspect
-        document.getElementById('build-menu').classList.add('hidden');
-        document.getElementById('inspect-menu').classList.remove('hidden');
+        // UI Swap: Hide Build, Show Inspect Side Panel
+        const buildMenu = document.getElementById('build-menu');
+        const inspectMenu = document.getElementById('inspect-menu');
+        
+        if (buildMenu) buildMenu.classList.add('hidden');
+        if (inspectMenu) inspectMenu.classList.remove('hidden'); // Side panel slides in
 
         this.updateInspectUI();
     }
@@ -589,13 +835,13 @@ export class Game {
     deselectTower() {
         this.selectedTower = null;
 
-        // 1. Show Build Menu
+        // 1. Show Build Menu, Hide Inspect Side Panel
         const buildMenu = document.getElementById('build-menu');
         const inspectMenu = document.getElementById('inspect-menu');
 
         // Swap back
         if (buildMenu) buildMenu.classList.remove('hidden');
-        if (inspectMenu) inspectMenu.classList.add('hidden');
+        if (inspectMenu) inspectMenu.classList.add('hidden'); // Side panel slides out
     }
 
     updateInspectUI() {
@@ -679,69 +925,63 @@ export class Game {
     }
 
     setupInspectListeners() {
-        // Upgrade (Standard)
-        document.getElementById('btn-upgrade').onclick = () => {
-            if (this.selectedTower && this.selectedTower.canUpgrade()) {
-                const cost = this.selectedTower.getUpgradeCost();
-                if (this.credits >= cost) {
-                    this.credits -= cost;
-                    this.selectedTower.upgrade();
-                    this.updateResourceDisplay();
-                    this.updateInspectUI();
-                }
-            }
-        };
+        console.log("Setting up Inspect Menu Listeners...");
 
-        // Upgrade Path A (Laser)
-        document.getElementById('btn-upgrade-a').onclick = () => {
-            if (this.selectedTower && this.selectedTower.canUpgrade('A')) {
-                const cost = this.selectedTower.getUpgradeCost('A');
-                if (this.credits >= cost) {
-                    this.credits -= cost;
+        // --- UPGRADE PATH A ---
+        const btnUpgradeA = document.getElementById('btn-upgrade-a');
+        if (btnUpgradeA) {
+            btnUpgradeA.onclick = () => {
+                if (this.selectedTower) {
                     this.selectedTower.upgrade('A');
-                    this.updateResourceDisplay();
-                    this.updateInspectUI();
+                    this.updateInspectMenu();
                 }
-            }
-        };
+            };
+        } else {
+            console.warn("UI Missing: btn-upgrade-a");
+        }
 
-        // Upgrade Path B (Laser)
-        document.getElementById('btn-upgrade-b').onclick = () => {
-            if (this.selectedTower && this.selectedTower.canUpgrade('B')) {
-                const cost = this.selectedTower.getUpgradeCost('B');
-                if (this.credits >= cost) {
-                    this.credits -= cost;
+        // --- UPGRADE PATH B ---
+        const btnUpgradeB = document.getElementById('btn-upgrade-b');
+        if (btnUpgradeB) {
+            btnUpgradeB.onclick = () => {
+                if (this.selectedTower) {
                     this.selectedTower.upgrade('B');
-                    this.updateResourceDisplay();
-                    this.updateInspectUI();
+                    this.updateInspectMenu();
                 }
-            }
-        };
+            };
+        } else {
+            console.warn("UI Missing: btn-upgrade-b");
+        }
 
-        // Sell
-        document.getElementById('btn-sell').onclick = () => {
-            if (this.selectedTower) {
-                this.credits += this.selectedTower.getSellValue();
+        // --- SELL BUTTON ---
+        const btnSell = document.getElementById('btn-sell');
+        if (btnSell) {
+            btnSell.onclick = () => {
+                if (this.selectedTower) {
+                    this.sellTower(this.selectedTower);
+                    this.deselectTower();
+                }
+            };
+        }
 
-                // Remove from array
-                const index = this.towers.indexOf(this.selectedTower);
-                if (index > -1) this.towers.splice(index, 1);
+        // --- TARGET BUTTON ---
+        const btnTarget = document.getElementById('btn-target');
+        if (btnTarget) {
+            btnTarget.onclick = () => {
+                if (this.selectedTower) {
+                    const newMode = this.selectedTower.cycleTargetMode();
+                    btnTarget.innerText = `TARGET: ${newMode}`;
+                }
+            };
+        }
 
-                this.updateResourceDisplay();
+        // --- CLOSE BUTTON ---
+        const btnClose = document.getElementById('btn-deselect') || document.getElementById('btn-close');
+        if (btnClose) {
+            btnClose.onclick = () => {
                 this.deselectTower();
-            }
-        };
-
-        // Target Toggle
-        document.getElementById('btn-target').onclick = () => {
-            if (this.selectedTower) {
-                this.selectedTower.cycleTargetMode();
-                this.updateInspectUI();
-            }
-        };
-
-        // Deselect / Back
-        document.getElementById('btn-deselect').onclick = () => this.deselectTower();
+            };
+        }
     }
 
     setupPauseListeners() {

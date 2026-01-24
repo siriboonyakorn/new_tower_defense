@@ -3,7 +3,7 @@
 export const ENEMIES = {
     'SCOUT': {
         name: 'Scout',
-        hp: 50,
+        hp: 5,
         speed: 3, // Fast but weak
         reward: 15,
         color: '#ffff00', // Yellow
@@ -11,7 +11,7 @@ export const ENEMIES = {
     },
     'SOLDIER': {
         name: 'Soldier',
-        hp: 120,
+        hp: 12,
         speed: 2, // Average
         reward: 25,
         color: '#00ff00', // Green
@@ -19,7 +19,7 @@ export const ENEMIES = {
     },
     'TANK': {
         name: 'Tank',
-        hp: 400,
+        hp: 40,
         speed: 1, // Slow but tough
         reward: 50,
         color: '#0000ff', // Blue
@@ -27,7 +27,7 @@ export const ENEMIES = {
     },
     'HEAVY': {
         name: 'Heavy Mech',
-        hp: 800,
+        hp: 80,
         speed: 0.8,
         reward: 100,
         color: '#ff00ff', // Purple
@@ -35,7 +35,7 @@ export const ENEMIES = {
     },
     'BOSS': {
         name: 'Sector Boss',
-        hp: 2500,
+        hp: 250,
         speed: 0.5,
         reward: 500,
         color: '#ff0000', // Red
@@ -43,7 +43,7 @@ export const ENEMIES = {
     },
     'BOSS_MEGA': {
         name: 'Omega Class',
-        hp: 10000,
+        hp: 1000,
         speed: 0.3,
         reward: 2000,
         color: '#ffffff', // White

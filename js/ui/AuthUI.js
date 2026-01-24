@@ -48,6 +48,14 @@ export const AuthUI = {
             loginMsg: document.getElementById('login-msg'),
             signupMsg: document.getElementById('signup-msg'),
 
+            // Edit Name
+            nameWrapper: document.querySelector('.user-name-wrapper'),
+            editBtn: document.getElementById('btn-edit-name'),
+            editForm: document.getElementById('edit-name-form'),
+            editInput: document.getElementById('input-edit-username'),
+            saveBtn: document.getElementById('btn-save-name'),
+            cancelBtn: document.getElementById('btn-cancel-name'),
+
             // Buttons
             authTriggerBtn: document.getElementById('btn-auth') // We will add this to main menu
         };
@@ -96,6 +104,56 @@ export const AuthUI = {
         const deleteBtn = document.getElementById('btn-delete-account');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => this.handleDeleteAccount());
+        }
+
+        // Edit Name Logic
+        if (this.elements.editBtn) {
+            this.elements.editBtn.addEventListener('click', () => this.toggleEditMode(true));
+        }
+        if (this.elements.saveBtn) {
+            this.elements.saveBtn.addEventListener('click', () => this.saveNewName());
+        }
+        if (this.elements.cancelBtn) {
+            this.elements.cancelBtn.addEventListener('click', () => this.toggleEditMode(false));
+        }
+    },
+
+    toggleEditMode(show) {
+        if (show) {
+            this.elements.nameWrapper.classList.add('hidden');
+            this.elements.editForm.classList.remove('hidden');
+            const currentName = document.getElementById('display-username').textContent;
+            this.elements.editInput.value = currentName === 'COMMANDER' ? '' : currentName;
+            this.elements.editInput.focus();
+        } else {
+            this.elements.nameWrapper.classList.remove('hidden');
+            this.elements.editForm.classList.add('hidden');
+        }
+    },
+
+    async saveNewName() {
+        const newName = this.elements.editInput.value.trim();
+        if (!newName) return;
+
+        if (newName.length > 12) {
+            alert("Name too long (Max 12 chars)");
+            return;
+        }
+
+        const submitBtn = this.elements.saveBtn;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "...";
+
+        try {
+            await PlayerService.updateProfile({ username: newName });
+            this.toggleEditMode(false);
+            // The existing listener for 'player-profile-updated' will handle the display update
+        } catch (err) {
+            console.error("Name update failed", err);
+            alert("Update Failed: " + err.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = "✔";
         }
     },
 

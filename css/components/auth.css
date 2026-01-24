@@ -171,6 +171,83 @@
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
+/* User Profile Edit Styles */
+.user-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.edit-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 5px;
+    transition: 0.2s;
+}
+
+.edit-btn:hover {
+    color: var(--neon-blue);
+    transform: scale(1.2);
+}
+
+.edit-name-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.edit-name-form.hidden {
+    display: none;
+}
+
+.edit-name-form input {
+    width: 80%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--neon-blue);
+    color: white;
+    padding: 8px;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #555;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.action-btn.save:hover {
+    background: #00ff66;
+    color: black;
+    border-color: #00ff66;
+}
+
+.action-btn.cancel:hover {
+    background: #ff3333;
+    color: black;
+    border-color: #ff3333;
+}
+
 .user-stats {
     display: flex;
     gap: 20px;

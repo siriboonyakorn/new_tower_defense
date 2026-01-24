@@ -61,6 +61,7 @@ export class Game {
         this.hoveredTile = { x: 0, y: 0 };
         this.selectedTowerType = null;
         this.selectedTower = null;
+        this.hoveredEnemy = null;
 
         this.path = [];
         this.setupPath();
@@ -412,6 +413,20 @@ export class Game {
             // FREE PLACEMENT: Center tower on mouse
             this.hoveredTile.x = this.mouse.x - this.tileSize / 2;
             this.hoveredTile.y = this.mouse.y - this.tileSize / 2;
+
+            // ENEMY HOVER CHECK
+            this.hoveredEnemy = null;
+            // Check in reverse to prioritize enemies drawn on top (if overlapping)
+            for (let i = this.enemies.length - 1; i >= 0; i--) {
+                const enemy = this.enemies[i];
+                const dx = enemy.x - this.mouse.x;
+                const dy = enemy.y - this.mouse.y;
+                // Enemy radius is ~10-15px, let's use 20px for easy hovering
+                if (Math.sqrt(dx * dx + dy * dy) < 20) {
+                    this.hoveredEnemy = enemy;
+                    break;
+                }
+            }
         });
 
         this.canvas.addEventListener('click', () => {
@@ -567,6 +582,40 @@ export class Game {
 
     handleBaseHitWithoutSplice(enemy) {
         Loop.handleBaseHit(this, enemy);
+    }
+
+    victory() {
+        this.isRunning = false;
+
+        const screen = document.getElementById('end-screen');
+        const card = document.querySelector('.end-card');
+        const title = document.getElementById('end-title');
+        const reason = document.getElementById('end-reason');
+        const waves = document.getElementById('end-waves');
+
+        title.innerText = "SECTOR SECURED";
+        reason.innerText = "MISSION ACCOMPLISHED";
+        waves.innerText = `${this.waveIndex} / ${this.waves.length}`;
+
+        // Set Style (Green)
+        card.className = 'end-card victory';
+        screen.classList.remove('hidden');
+    }
+
+    exitToMenu() {
+        this.stop(); // Stops loop and hides HUD/Pause via hideUI()
+
+        // Ensure End Screen is gone
+        document.getElementById('end-screen').classList.add('hidden');
+
+        // Show Main Menu
+        const mainMenu = document.getElementById('main-menu');
+        if (mainMenu) mainMenu.classList.add('active');
+
+        // Restart Menu Background if needed
+        if (window.menuBackground && typeof window.menuBackground.start === 'function') {
+            window.menuBackground.start();
+        }
     }
 
     gameOver() {

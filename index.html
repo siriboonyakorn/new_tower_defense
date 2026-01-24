@@ -391,7 +391,18 @@
                     <div class="user-avatar">
                         <span id="avatar-icon">👤</span>
                     </div>
-                    <div class="user-name" id="display-username">COMMANDER</div>
+                    <div class="user-name-wrapper">
+                        <span class="user-name" id="display-username">COMMANDER</span>
+                        <button id="btn-edit-name" class="edit-btn" title="Change Name">✎</button>
+                    </div>
+
+                    <div id="edit-name-form" class="edit-name-form hidden">
+                        <input type="text" id="input-edit-username" placeholder="NEW CODENAME" maxlength="12">
+                        <div class="edit-actions">
+                            <button id="btn-save-name" class="action-btn save">✔</button>
+                            <button id="btn-cancel-name" class="action-btn cancel">✖</button>
+                        </div>
+                    </div>
 
                     <div class="user-stats">
                         <div class="stat-item">

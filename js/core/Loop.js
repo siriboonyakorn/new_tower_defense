@@ -127,7 +127,10 @@ export function handleEnemyDeathEffects(game, enemy) {
 }
 
 export function handleBaseHit(game, enemy) {
-    game.lives -= enemy.type.livesWeight || 1;
+    // FIX: Damage equals remaining HP (prevents 13 HP enemy dealing 1 dmg)
+    const damage = Math.ceil(enemy.hp);
+    game.lives -= damage;
+    console.log(`Base taken ${damage} damage! Lives: ${game.lives}`);
     game.updateResourceDisplay();
 
     if (game.lives <= 0) {
@@ -138,14 +141,14 @@ export function handleBaseHit(game, enemy) {
 
 export function handleVictory(game) {
     console.log("Victory!");
-    const victoryMenu = document.getElementById('victory-menu');
-    if (victoryMenu) victoryMenu.classList.remove('hidden');
-    game.stop();
+    if (typeof game.victory === 'function') {
+        game.victory();
+    }
 }
 
 export function gameOver(game) {
     console.log("Game Over!");
-    const gameOverMenu = document.getElementById('game-over-menu');
-    if (gameOverMenu) gameOverMenu.classList.remove('hidden');
-    game.stop();
+    if (typeof game.gameOver === 'function') {
+        game.gameOver();
+    }
 }

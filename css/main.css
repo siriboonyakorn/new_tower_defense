@@ -7,6 +7,7 @@
 /* 1. BASE LAYER - Core settings and DNA */
 @import 'base/variables.css';
 @import 'base/reset.css';
+@import 'base/responsive.css';
 
 /* 2. COMPONENT LAYER - Reusable UI elements */
 @import 'components/buttons.css';

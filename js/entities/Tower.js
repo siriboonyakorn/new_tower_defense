@@ -62,17 +62,14 @@ export class Tower {
         // Apply Cooldown (affected by buffs)
         const actualCooldown = this.cooldown / this.buffs.speed;
 
+        // RETARGETING FIX: Always look for the best target every frame
+        // This ensures towers switch to "First" or "Strong" targets immediately
+        this.findTarget();
+
         if (Date.now() - this.lastShot >= actualCooldown) {
-            this.findTarget();
             if (this.target) {
                 this.shoot();
                 this.lastShot = Date.now();
-            }
-        } else {
-            if (this.target && (this.target.hp <= 0 || this.distanceTo(this.target) > (this.range * this.buffs.range))) {
-                this.target = null;
-            } else if (!this.target) {
-                this.findTarget();
             }
         }
 

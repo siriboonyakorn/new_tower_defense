@@ -1,11 +1,16 @@
+import { StoreService } from '../../modules/StoreService.js';
+
 export function drawSpawnerTower(ctx, tower) {
     const level = tower.level;
-    const color = tower.type.color || '#ff8800';
+    const skin = StoreService.getSkinConfig('spawner') || { colors: { base: '#2d2d2d', detail: '#555', highlight: '#ff8800' } };
+    const c = skin.colors;
+
+    const color = tower.type.color || c.highlight;
 
     // 1. Factory Base (Concrete Slab)
-    ctx.fillStyle = '#2d2d2d';
+    ctx.fillStyle = c.base;
     ctx.fillRect(-20, -20, 40, 40);
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = c.highlight;
     ctx.lineWidth = 2;
     ctx.strokeRect(-20, -20, 40, 40);
 
@@ -14,7 +19,7 @@ export function drawSpawnerTower(ctx, tower) {
     ctx.fillRect(-12, -20, 24, 40); // Central Hangar Way
 
     // Hazard Stripes on the floor
-    ctx.strokeStyle = '#444';
+    ctx.strokeStyle = c.detail;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(-8, -15); ctx.lineTo(8, -15);
@@ -25,7 +30,7 @@ export function drawSpawnerTower(ctx, tower) {
 
     // 3. Roof / Control Tower
     // Gets more complex with levels
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = c.detail;
     ctx.fillRect(-22, -10, 8, 20); // Left Wing
     ctx.fillRect(14, -10, 8, 20);  // Right Wing
 
@@ -45,7 +50,7 @@ export function drawSpawnerTower(ctx, tower) {
 
     // Level 3+: Active Production Lights (Blinking)
     const blink = Math.floor(Date.now() / 500) % 2 === 0;
-    ctx.fillStyle = blink ? '#00ff00' : '#003300';
+    ctx.fillStyle = blink ? c.highlight : '#003300';
     ctx.beginPath();
     ctx.arc(18, 5, 2, 0, Math.PI * 2); // Light 1
     ctx.fill();
@@ -55,7 +60,7 @@ export function drawSpawnerTower(ctx, tower) {
 
     // Level 5: Helipad H visual
     if (level >= 5) {
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = c.highlight;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(0, -5);

@@ -1,0 +1,103 @@
+/* css/screens/inventory.css */
+
+/* Re-using store-window layout but with specific tweaks */
+
+/* --- INVENTORY TABS --- */
+/* Similar to store tabs but maybe a distinct variation */
+.inv-tab {
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 15px 25px;
+    text-align: left;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.inv-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.03);
+    padding-left: 30px;
+}
+
+.inv-tab.active {
+    color: #00ff88;
+    /* Green tint for Inventory (Ownership) */
+    border-left: 4px solid #00ff88;
+    background: rgba(0, 255, 136, 0.05);
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+    box-shadow: inset 10px 0 20px -10px rgba(0, 255, 136, 0.2);
+}
+
+.inv-tab.active::after {
+    content: '///';
+    position: absolute;
+    right: 20px;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: rgba(0, 255, 136, 0.5);
+}
+
+/* --- LOCKED ITEMS --- */
+.skin-card.locked-item {
+    border-color: #333;
+    opacity: 0.7;
+    background: rgba(10, 10, 15, 0.6);
+}
+
+.skin-card.locked-item:hover {
+    border-color: #555;
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.skin-card.locked-item .skin-preview-thumb {
+    border-color: #333;
+    background: #000 !important;
+    /* Force black */
+    box-shadow: none !important;
+}
+
+.skin-card.locked-item .skin-name {
+    color: #444;
+    font-style: italic;
+}
+
+/* --- STATS PANEL --- */
+.inv-stats {
+    width: 100%;
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.inv-stat-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.inv-stat-val {
+    color: white;
+    font-weight: bold;
+}
+
+/* Custom scrollbar override for inventory grid if needed */
+#inventory-grid::-webkit-scrollbar-thumb {
+    background: #00ff88;
+}

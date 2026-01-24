@@ -1,0 +1,232 @@
+/* css/components/auth.css */
+
+/* Auth Window - Reusing similar styles to settings window */
+.auth-window {
+    width: 450px;
+    background: rgba(8, 10, 15, 0.98);
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.15), inset 0 0 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    /* Angled corners */
+    clip-path: polygon(20px 0, 100% 0,
+            100% calc(100% - 20px), calc(100% - 20px) 100%,
+            0 100%, 0 20px);
+    animation: window-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.auth-content {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Tabs */
+.auth-tabs {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.auth-tab-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: 0.3s;
+    letter-spacing: 2px;
+}
+
+.auth-tab-btn:hover {
+    color: white;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.auth-tab-btn.active {
+    color: var(--neon-blue);
+    border-bottom: 2px solid var(--neon-blue);
+    text-shadow: 0 0 10px var(--neon-blue);
+}
+
+/* Forms */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.auth-form.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-family: 'Orbitron', sans-serif;
+    color: #888;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.form-group input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #444;
+    padding: 12px;
+    color: white;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.2s;
+}
+
+.form-group input:focus {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+}
+
+.auth-submit-btn {
+    margin-top: 10px;
+    background: rgba(0, 243, 255, 0.1);
+    border: 1px solid var(--neon-blue);
+    color: white;
+    padding: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.auth-submit-btn:hover {
+    background: var(--neon-blue);
+    color: black;
+    box-shadow: 0 0 20px var(--neon-blue);
+}
+
+.auth-submit-btn:disabled {
+    border-color: #555;
+    color: #555;
+    background: transparent;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Messages */
+.auth-msg {
+    min-height: 20px;
+    font-size: 0.85rem;
+    text-align: center;
+    font-family: 'Consolas', monospace;
+}
+
+.auth-msg.error {
+    color: #ff3333;
+}
+
+.auth-msg.success {
+    color: #00ff66;
+}
+
+/* User Info Panel (When logged in) */
+.user-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    text-align: center;
+}
+
+.user-avatar {
+    width: 80px;
+    height: 80px;
+    background: #222;
+    border: 2px solid var(--neon-blue);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    color: var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+}
+
+.user-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    color: white;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.user-stats {
+    display: flex;
+    gap: 20px;
+    margin: 10px 0;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+.stat-value {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-blue);
+    font-size: 1.2rem;
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid #ff3333;
+    color: #ff3333;
+    padding: 8px 20px;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 10px;
+}
+
+.logout-btn:hover {
+    background: #ff3333;
+    color: black;
+    box-shadow: 0 0 15px #ff3333;
+}
+
+.delete-acc-btn {
+    background: transparent;
+    border: 1px solid #ff6600;
+    color: #ff6600;
+    padding: 8px 15px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 20px;
+    display: block;
+    width: 100%;
+}
+
+.delete-acc-btn:hover {
+    background: #ff6600;
+    color: black;
+    box-shadow: 0 0 10px #ff6600;
+}

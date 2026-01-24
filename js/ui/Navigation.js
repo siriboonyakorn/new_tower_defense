@@ -175,6 +175,8 @@ export class Navigation {
                 this.closeMenu(document.getElementById('logs-overlay'));
                 this.closeMenu(document.getElementById('settings-modal'));
                 this.closeMenu(document.getElementById('deployment-overlay'));
+                this.closeMenu(document.getElementById('auth-modal'));
+                this.closeMenu(document.getElementById('lobby-modal'));
             }
         });
     }

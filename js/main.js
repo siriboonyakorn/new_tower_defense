@@ -1,12 +1,31 @@
-// js/main.js
 import { Navigation } from './ui/Navigation.js';
 import { SpaceScene } from './scenes/SpaceScene.js';
 import { AudioManager } from './core/AudioManager.js';
 import { Game } from './core/Game.js';
+import { CONFIG } from './config.js';
+import { PlayerService } from './modules/PlayerService.js';
+import { AuthUI } from './ui/AuthUI.js';
+import { LobbyUI } from './ui/LobbyUI.js';
+import { StoreUI } from './ui/StoreUI.js';
+import { InventoryUI } from './ui/InventoryUI.js';
 
 window.menuBackground = null;
 
-window.onload = () => {
+window.onload = async () => {
+    // Init Services
+    try {
+        PlayerService.init({
+            url: CONFIG.SUPABASE_URL,
+            anonKey: CONFIG.SUPABASE_ANON_KEY
+        });
+        AuthUI.init();
+        LobbyUI.init();
+        StoreUI.init();
+        InventoryUI.init();
+    } catch (e) {
+        console.warn("Supabase init failed (check config.js):", e);
+    }
+
     window.audioManager = new AudioManager();
     const nav = new Navigation();
 
@@ -138,7 +157,7 @@ window.onload = () => {
             // Hide end screen
             const endScreen = document.getElementById('end-screen');
             if (endScreen) endScreen.classList.add('hidden');
-            
+
             // Call exit to menu if game exists
             if (window.game && typeof window.game.exitToMenu === 'function') {
                 window.game.exitToMenu();

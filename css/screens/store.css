@@ -1,0 +1,418 @@
+/* css/screens/store.css */
+
+/* --- STORE WINDOW CONTAINER --- */
+.store-window {
+    width: 1100px;
+    height: 750px;
+    background: rgba(8, 10, 15, 0.98);
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.15), inset 0 0 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    /* Angled cyberpunk corners */
+    clip-path: polygon(20px 0, 100% 0,
+            100% calc(100% - 20px), calc(100% - 20px) 100%,
+            0 100%, 0 20px);
+    animation: window-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background Grid Overlay */
+.store-window::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Header Tweaks specifically for Store */
+.store-window .window-header {
+    z-index: 2;
+    background: rgba(0, 20, 30, 0.6);
+}
+
+/* --- MAIN LAYOUT --- */
+.store-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    z-index: 1;
+    gap: 0;
+    /* Removing gap to have borders meet */
+}
+
+/* 1. LEFT SIDEBAR (Tabs) */
+.store-sidebar {
+    width: 260px;
+    background: rgba(0, 0, 0, 0.3);
+    border-right: 1px solid rgba(0, 243, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.store-tabs {
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+}
+
+.store-tab {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 18px 25px;
+    text-align: left;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.store-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(0, 243, 255, 0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+}
+
+.store-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.03);
+    padding-left: 30px;
+    /* Slight movement */
+}
+
+.store-tab:hover::before {
+    transform: translateX(-80%);
+}
+
+.store-tab.active {
+    color: var(--neon-blue);
+    border-left: 4px solid var(--neon-blue);
+    background: rgba(0, 243, 255, 0.05);
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+    box-shadow: inset 10px 0 20px -10px rgba(0, 243, 255, 0.2);
+}
+
+.store-tab.active::after {
+    content: '►';
+    position: absolute;
+    right: 20px;
+    font-size: 0.8rem;
+    animation: bounceRight 1s infinite alternate;
+}
+
+@keyframes bounceRight {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(5px);
+    }
+}
+
+
+/* 2. CENTER GRID (Items) */
+.skin-grid {
+    flex: 1;
+    display: grid;
+    /* Responsive columns */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-auto-rows: min-content;
+    /* Prevent stretching */
+    gap: 15px;
+    padding: 25px;
+    overflow-y: auto;
+    /* Styled scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--neon-blue) rgba(0, 0, 0, 0.3);
+}
+
+.skin-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.skin-grid::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.skin-grid::-webkit-scrollbar-thumb {
+    background: var(--neon-blue);
+    border-radius: 3px;
+}
+
+/* Item Card */
+.skin-card {
+    background: rgba(20, 25, 30, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    /* Corner cuts */
+    clip-path: polygon(10px 0, 100% 0,
+            100% calc(100% - 10px), calc(100% - 10px) 100%,
+            0 100%, 0 10px);
+}
+
+.skin-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: #fff;
+    background: rgba(40, 50, 60, 0.6);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.skin-card.selected {
+    border-color: var(--neon-blue);
+    background: rgba(0, 243, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.1);
+}
+
+/* Equipped Badge */
+.skin-card.equipped::before {
+    content: 'EQUIPPED';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    background: var(--neon-blue);
+    color: #000;
+    font-weight: 900;
+    font-size: 0.7rem;
+    padding: 2px 0;
+    z-index: 5;
+    letter-spacing: 1px;
+}
+
+.skin-preview-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    position: relative;
+    /* Create a cool tech frame for the thumb */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.skin-name {
+    color: #ccc;
+    font-size: 0.85rem;
+    text-align: center;
+    line-height: 1.2;
+    margin-top: auto;
+    /* Push to bottom */
+}
+
+
+/* Rarity Borders */
+.skin-card.rare {
+    border-bottom: 3px solid #00f3ff;
+}
+
+.skin-card.epic {
+    border-bottom: 3px solid #ff003c;
+}
+
+.skin-card.legendary {
+    border-bottom: 3px solid #ffd700;
+}
+
+.skin-card.legendary:hover {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+
+/* 3. RIGHT PREVIEW PANEL */
+.store-preview {
+    width: 350px;
+    background: rgba(10, 15, 20, 0.8);
+    border-left: 1px solid rgba(0, 243, 255, 0.1);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    box-shadow: -10px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.store-preview::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+}
+
+/* Big Render Box */
+.preview-box {
+    /* Canvas Container */
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle at center, #1a202c, #050505);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Scanner line over preview */
+.preview-box::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: rgba(0, 243, 255, 0.5);
+    top: 50%;
+    animation: scanVertical 3s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+    box-shadow: 0 0 10px var(--neon-blue);
+    opacity: 0.5;
+}
+
+@keyframes scanVertical {
+    0% {
+        top: 0;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
+}
+
+#preview-name {
+    font-size: 1.4rem;
+    color: #fff;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    text-align: center;
+}
+
+#preview-desc {
+    font-size: 0.9rem;
+    color: #888;
+    text-align: center;
+    margin-bottom: 30px;
+    font-style: italic;
+    line-height: 1.5;
+    max-width: 90%;
+}
+
+.price-tag {
+    font-size: 1.1rem;
+    color: #aaa;
+    margin-bottom: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 1px solid #333;
+}
+
+.price-tag span {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+/* Action Button */
+.store-action-btn {
+    width: 100%;
+    padding: 18px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #222;
+    color: #555;
+    clip-path: polygon(10px 0, 100% 0,
+            100% calc(100% - 10px), calc(100% - 10px) 100%,
+            0 100%, 0 10px);
+}
+
+.store-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Buy State */
+.store-action-btn.buy {
+    background: rgba(255, 0, 255, 0.1);
+    border-color: #ff00ff;
+    color: #ff00ff;
+}
+
+.store-action-btn.buy:hover {
+    background: #ff00ff;
+    color: #000;
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
+}
+
+/* Equip State */
+.store-action-btn.equip {
+    background: rgba(0, 243, 255, 0.1);
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+}
+
+.store-action-btn.equip:hover {
+    background: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.4);
+}
+
+/* Timer in header */
+#store-timer {
+    font-variant-numeric: tabular-nums;
+    font-weight: bold;
+    text-shadow: 0 0 5px currentColor;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}

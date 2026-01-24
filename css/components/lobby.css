@@ -15,10 +15,14 @@
 /* Mode Selection (Create or Join) */
 .lobby-mode-select {
     padding: 30px;
-    display: flex;
+    display: none;
     flex-direction: column;
     gap: 20px;
     align-items: center;
+}
+
+.lobby-mode-select.active {
+    display: flex;
 }
 
 .lobby-mode-title {

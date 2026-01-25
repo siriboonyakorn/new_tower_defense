@@ -146,6 +146,20 @@ export class Navigation {
             };
         }
 
+        const multiBtn = document.getElementById('btn-multiplayer');
+        if (multiBtn) {
+            multiBtn.onclick = () => {
+                // Open Lobby without map validation
+                this.closeMenu(deploymentOverlay);
+
+                if (window.LobbyUI) {
+                    window.LobbyUI.open();
+                } else {
+                    console.error("LobbyUI not found on window");
+                }
+            };
+        }
+
         if (closeDeployment) closeDeployment.onclick = () => this.closeMenu(deploymentOverlay);
 
         if (logsBtn) logsBtn.onclick = () => logsOverlay.classList.remove('hidden');

@@ -20,6 +20,7 @@ window.onload = async () => {
         });
         AuthUI.init();
         LobbyUI.init();
+        window.LobbyUI = LobbyUI; // Expose for Navigation
         StoreUI.init();
         InventoryUI.init();
     } catch (e) {

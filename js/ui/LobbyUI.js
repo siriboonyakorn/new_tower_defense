@@ -5,6 +5,7 @@
 import { RoomService } from '../modules/RoomService.js';
 import { PlayerService } from '../modules/PlayerService.js';
 import { ProgressionManager } from '../modules/ProgressionManager.js';
+import { levels } from '../data/levels.js';
 
 export const LobbyUI = {
     elements: {},
@@ -23,17 +24,22 @@ export const LobbyUI = {
 
             // Panels
             modePanel: document.getElementById('lobby-mode-panel'),
+            mapPanel: document.getElementById('lobby-map-panel'),
             joinPanel: document.getElementById('lobby-join-panel'),
             roomPanel: document.getElementById('lobby-room-panel'),
 
             // Buttons
             createBtn: document.getElementById('btn-create-room'),
+            backToModeBtn: document.getElementById('btn-back-to-mode'),
             joinModeBtn: document.getElementById('btn-join-mode'),
             joinSubmitBtn: document.getElementById('btn-join-submit'),
             readyBtn: document.getElementById('btn-ready'),
             startBtn: document.getElementById('btn-start-game'),
             leaveBtn: document.getElementById('btn-leave-room'),
             backBtns: document.querySelectorAll('.lobby-back-btn'),
+
+            // Map List
+            mapList: document.getElementById('lobby-map-list'),
 
             // Join
             joinCodeInput: document.getElementById('join-code-input'),
@@ -55,25 +61,17 @@ export const LobbyUI = {
 
     bindEvents() {
         console.log('[LobbyUI] Binding events...');
-        // Open/Close
-        const triggerBtn = document.getElementById('btn-multiplayer');
-        if (triggerBtn) {
-            console.log('[LobbyUI] Found triggerBtn, adding click listener');
-            triggerBtn.addEventListener('click', () => {
-                console.log('[LobbyUI] Multiplayer button clicked');
-                this.open();
-            });
-        } else {
-            console.warn('[LobbyUI] triggerBtn (btn-multiplayer) NOT FOUND in DOM');
-        }
-
         if (this.elements.closeBtn) {
             this.elements.closeBtn.addEventListener('click', () => this.close());
         }
 
         // Mode selection
         if (this.elements.createBtn) {
-            this.elements.createBtn.addEventListener('click', () => this.createRoom());
+            this.elements.createBtn.addEventListener('click', () => this.showMapPanel());
+        }
+
+        if (this.elements.backToModeBtn) {
+            this.elements.backToModeBtn.addEventListener('click', () => this.showModePanel());
         }
 
         if (this.elements.joinModeBtn) {
@@ -121,8 +119,10 @@ export const LobbyUI = {
         });
     },
 
-    open() {
-        console.log('[LobbyUI] Attempting to open...');
+    open(levelId = null) {
+        console.log('[LobbyUI] Opening with Level ID:', levelId);
+        this.selectedLevelId = levelId;
+
         // Check if logged in
         const profile = PlayerService.getCurrentProfile();
         if (!profile || profile.is_anonymous) {
@@ -184,28 +184,73 @@ export const LobbyUI = {
 
     showModePanel() {
         this.elements.modePanel.classList.add('active');
+        this.elements.mapPanel.classList.remove('active');
         this.elements.joinPanel.classList.remove('active');
         this.elements.roomPanel.classList.remove('active');
     },
 
     showJoinPanel() {
         this.elements.modePanel.classList.remove('active');
+        this.elements.mapPanel.classList.remove('active');
         this.elements.joinPanel.classList.add('active');
         this.elements.roomPanel.classList.remove('active');
         this.elements.joinCodeInput.focus();
     },
 
+    showMapPanel() {
+        this.elements.modePanel.classList.remove('active');
+        this.elements.mapPanel.classList.add('active');
+        this.elements.joinPanel.classList.remove('active');
+        this.elements.roomPanel.classList.remove('active');
+        this.populateMapList();
+    },
+
     showRoomPanel() {
         this.elements.modePanel.classList.remove('active');
+        this.elements.mapPanel.classList.remove('active');
         this.elements.joinPanel.classList.remove('active');
         this.elements.roomPanel.classList.add('active');
     },
 
-    async createRoom() {
+    populateMapList() {
+        if (!this.elements.mapList) return;
+        this.elements.mapList.innerHTML = '';
+
+        levels.forEach(level => {
+            const btn = document.createElement('button');
+            btn.className = 'lobby-map-btn';
+
+            // Determine color based on difficulty logic (simplified here or reused)
+            let diffColor = '#fff';
+            if (level.difficulty === 'EASY') diffColor = '#00f3ff';
+            if (level.difficulty === 'NORMAL') diffColor = '#00ff00';
+            if (level.difficulty === 'HARD') diffColor = '#ff9f00';
+            if (level.difficulty === 'EXTREME') diffColor = '#ff0055';
+            if (level.difficulty === 'INSANE') diffColor = '#ff00ff';
+            if (level.difficulty === 'OMEGA') diffColor = '#ff0000';
+
+            btn.innerHTML = `
+                <span class="map-name">${level.name}</span>
+                <span class="map-diff" style="color: ${diffColor};">${level.difficulty}</span>
+            `;
+
+            btn.onclick = () => this.createRoom(level.id);
+            this.elements.mapList.appendChild(btn);
+        });
+    },
+
+    async createRoom(selectedMapId) {
         this.setMessage(this.elements.joinMessage, 'Creating room...', '');
 
         try {
-            const room = await RoomService.createRoom({ maxPlayers: 4 });
+            // PASS SELECTED MAP ID
+            const levelId = selectedMapId || 'sector1';
+            console.log('[LobbyUI] Creating room for level:', levelId);
+
+            const room = await RoomService.createRoom({
+                maxPlayers: 4,
+                metadata: { levelId: levelId }
+            });
             console.log('Room created:', room);
 
             this.displayRoom(room);
@@ -321,14 +366,7 @@ export const LobbyUI = {
         try {
             await RoomService.startGame();
             this.setMessage(this.elements.roomMessage, 'Starting game...', 'success');
-
-            // TODO: Transition to game
-            setTimeout(() => {
-                this.close();
-                // Start actual game here
-                console.log('🎮 GAME STARTING!');
-            }, 1500);
-
+            // The subscription update will trigger the actual transition for everyone
         } catch (err) {
             console.error('Start game error:', err);
             this.setMessage(this.elements.roomMessage, err.message, 'error');
@@ -354,8 +392,32 @@ export const LobbyUI = {
             },
             onRoomUpdate: (payload) => {
                 console.log('Room updated:', payload);
-                if (payload.new.status === 'in_progress') {
-                    this.setMessage(this.elements.roomMessage, 'Game starting!', 'success');
+                const room = payload.new;
+
+                // GAME START SIGNAL
+                if (room.status === 'in_progress') {
+                    this.setMessage(this.elements.roomMessage, 'DEPLOYING TO SECTOR...', 'success');
+
+                    const targetLevelId = room.metadata?.levelId || 'sector1';
+                    console.log(`[LobbyUI] Launching Game Map: ${targetLevelId}`);
+
+                    setTimeout(() => {
+                        this.close();
+
+                        // Clean up main menu
+                        const mainMenu = document.getElementById('main-menu');
+                        if (mainMenu) mainMenu.classList.remove('active');
+
+                        // Stop background
+                        if (window.menuBackground) window.menuBackground.stop();
+
+                        // START GAME
+                        if (window.game && typeof window.game.stop === 'function') {
+                            window.game.stop();
+                        }
+                        window.game = new Game('game-canvas', targetLevelId);
+
+                    }, 1000);
                 }
             }
         });

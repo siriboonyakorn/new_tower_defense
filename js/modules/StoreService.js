@@ -117,20 +117,14 @@ export const StoreService = {
             throw new Error("Insufficient Neon Tokens.");
         }
 
-        const supabase = PlayerService.getClient();
+        const unlockedSkins = [...profile.unlocked_skins, skinId];
+        const newTokens = profile.neon_tokens - cost;
 
-        // Use the secure RPC function
-        const { data, error } = await supabase.rpc('purchase_skin', {
-            p_id: profile.id,
-            skin_id: skinId,
-            cost: cost
+        await PlayerService.updateProfile({
+            unlocked_skins: JSON.stringify(unlockedSkins),
+            neon_tokens: newTokens
         });
 
-        if (error) throw error;
-        if (!data) throw new Error("Purchase failed (Validation error).");
-
-        // Refresh profile to see changes
-        await PlayerService._loadProfile(profile.auth_id);
         return true;
     },
 
@@ -141,19 +135,13 @@ export const StoreService = {
         const profile = PlayerService.getCurrentProfile();
         if (!profile) throw new Error("Not logged in.");
 
-        const supabase = PlayerService.getClient();
+        const equippedSkins = { ...profile.equipped_skins };
+        equippedSkins[towerType] = skinId;
 
-        const { data, error } = await supabase.rpc('equip_skin', {
-            p_id: profile.id,
-            tower_type: towerType,
-            skin_id: skinId
+        await PlayerService.updateProfile({
+            equipped_skins: JSON.stringify(equippedSkins)
         });
 
-        if (error) throw error;
-        if (!data) throw new Error("Equip failed (Not owned?).");
-
-        // Refresh profile
-        await PlayerService._loadProfile(profile.auth_id);
         return true;
     }
 };

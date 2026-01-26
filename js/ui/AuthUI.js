@@ -247,7 +247,7 @@ export const AuthUI = {
         try {
             const result = await PlayerService.signUpWithEmail(email, pass, username);
 
-            if (result.session) {
+            if (result.profile) {
                 this.setMessage(this.elements.signupMsg, "IDENTITY CONFIRMED. LOGGING IN...", "success");
                 setTimeout(() => {
                     this.close();

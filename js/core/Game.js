@@ -8,9 +8,11 @@ import { Tower } from '../entities/Tower.js';
 import { Enemy } from '../entities/Enemy.js';
 import { levels } from '../data/levels.js';
 import * as Loop from './Loop.js';
+import { RoomService } from '../modules/RoomService.js';
 
 export class Game {
     constructor(canvasId, levelId) {
+        console.log(`[Game] Initializing... Canvas: ${canvasId}, Level: ${levelId}`);
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         this.levelId = levelId;
@@ -65,6 +67,10 @@ export class Game {
 
         this.path = [];
         this.setupPath();
+
+        // Multiplayer State
+        this.room = RoomService.getCurrentRoom();
+        this.setupMultiplayer();
 
         // DYNAMIC TILE SIZE: Calculate based on path dimensions to fit screen
         this.calculateDynamicTileSize();
@@ -152,12 +158,13 @@ export class Game {
     // js/core/Game.js
 
     startNextWave() {
-        if (this.waveIndex >= this.waves.length) {
-            console.log("VICTORY! ALL WAVES CLEARED.");
-            // You can add a victory screen call here later
+        const nextIdx = this.waveIndex;
+        if (nextIdx >= this.waves.length) {
+            console.log("[Game] VICTORY! ALL WAVES CLEARED.");
             return;
         }
 
+        console.log(`[Game] Starting wave ${nextIdx + 1}`);
         this.currentWaveConfig = this.waves[this.waveIndex];
 
         // --- MIXED WAVE LOGIC ---
@@ -203,6 +210,32 @@ export class Game {
             }
         }
         if (skipBtn) skipBtn.classList.add('hidden'); // Hide skip button at wave start
+    }
+
+    setupMultiplayer() {
+        if (!this.room) return;
+        console.log('[Game] Multiplayer room detected:', this.room.id);
+
+        // Hook into RoomService Broadcast channel
+        if (RoomService.currentChannel) {
+            RoomService.currentChannel.on('broadcast', { event: 'game_event' }, (payload) => {
+                const data = payload.payload;
+                console.log('[Game] Received Broadcast Event:', data);
+
+                if (data.type === 'tower_placed' && data.senderId !== PlayerService.getCurrentProfile().id) {
+                    const towerType = TOWER_TYPES[data.towerData.typeKey];
+                    const remoteTower = new Tower(this, data.towerData.x, data.towerData.y, towerType);
+                    this.towers.push(remoteTower);
+                }
+
+                if (data.type === 'wave_started') {
+                    if (!this.isWaveActive || this.waveIndex <= data.waveIndex) {
+                        if (this.waveIndex < data.waveIndex) this.waveIndex = data.waveIndex - 1;
+                        this.startNextWave();
+                    }
+                }
+            });
+        }
     }
 
     setupPath() {
@@ -295,6 +328,13 @@ export class Game {
             btnStartWave.onclick = (e) => {
                 e.stopPropagation();
                 this.startNextWave();
+
+                // --- MULTIPLAYER BROADCAST ---
+                if (this.room) {
+                    RoomService.broadcastEvent('wave_started', {
+                        waveIndex: this.waveIndex
+                    });
+                }
             };
         }
 
@@ -328,6 +368,7 @@ export class Game {
         const towerKeys = Object.keys(TOWER_TYPES);
         towerKeys.forEach((key, index) => {
             const towerType = TOWER_TYPES[key];
+            towerType.key = key; // Ensure key is available on the type object
             const slotBtn = document.createElement('div');
             slotBtn.className = 'slot-btn';
             slotBtn.setAttribute('data-tower-key', key);
@@ -568,6 +609,18 @@ export class Game {
         // Deduct credits
         this.credits -= cost;
         this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
+
+        // --- MULTIPLAYER BROADCAST ---
+        if (this.room) {
+            RoomService.broadcastEvent('tower_placed', {
+                senderId: PlayerService.getCurrentProfile().id,
+                towerData: {
+                    x: tx,
+                    y: ty,
+                    typeKey: this.selectedTowerType.id.toUpperCase()
+                }
+            });
+        }
 
         // Manual Deselect Logic
         this.selectedTowerType = null;

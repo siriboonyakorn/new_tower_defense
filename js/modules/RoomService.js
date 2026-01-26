@@ -1,12 +1,47 @@
-/**
- * RoomService.js
- * Handles multiplayer room creation, joining, and management
- */
 import { PlayerService } from './PlayerService.js';
+import { CONFIG } from '../config.js';
 
 export const RoomService = {
+    socket: null,
     currentRoom: null,
     currentMembers: [],
+
+    init() {
+        if (this.socket) return;
+
+        console.log('[RoomService] Connecting to Socket.io server:', CONFIG.SOCKET_URL);
+        this.socket = io(CONFIG.SOCKET_URL, {
+            autoConnect: true,
+            reconnection: true
+        });
+
+        this.socket.on('connect', () => {
+            console.log('[RoomService] Connected to Multi-Server');
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.warn('[RoomService] Connection Error:', error.message);
+            console.log('[RoomService] TIP: Ensure your Render server is running and CORS is allowed for this origin.');
+        });
+
+        this.socket.on('disconnect', (reason) => {
+            console.log('[RoomService] Disconnected:', reason);
+        });
+
+        this.socket.on('room_update', (data) => {
+            console.log('[RoomService] Received Update:', data);
+            this.currentRoom = data.room;
+            this.currentMembers = data.members;
+
+            // Dispatch event for UI
+            window.dispatchEvent(new CustomEvent('room-data-updated'));
+        });
+
+        this.socket.on('game_start', (data) => {
+            console.log('[RoomService] Multi-Signal: Game Starting', data);
+            window.dispatchEvent(new CustomEvent('game-start-signal', { detail: data }));
+        });
+    },
 
     getClient() {
         return PlayerService.getClient();
@@ -14,308 +49,113 @@ export const RoomService = {
 
     /**
      * Create a new room
-     * @param {Object} options { maxPlayers, metadata }
-     * @returns {Promise<Object>} Room data with join_code
      */
     async createRoom(options = {}) {
-        const supabase = this.getClient();
         const profile = PlayerService.getCurrentProfile();
+        if (!profile) throw new Error('Must be logged in to create a room');
 
-        if (!profile) {
-            throw new Error('Must be logged in to create a room');
-        }
+        console.log('[RoomService] Requesting new room creation...');
 
-        console.log('[RoomService] Creating room for profile:', profile.id);
-
-        // Generate join code
-        try {
-            const { data: codeData } = await supabase.rpc('generate_join_code');
-            const joinCode = codeData || this._generateFallbackCode();
-
-            console.log('[RoomService] Generated join code:', joinCode);
-
-            console.log('[RoomService] Attempting to insert room...');
-            const { data, error } = await supabase
-                .from('rooms')
-                .insert({
-                    host_profile_id: profile.id,
-                    join_code: joinCode,
-                    max_players: options.maxPlayers || 4,
-                    status: 'waiting',
-                    metadata: options.metadata || {}
-                })
-                .select()
-                .single();
-
-            if (error) {
-                console.error('[RoomService] Insert error details:', {
-                    code: error.code,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint
-                });
-                throw error;
-            }
-
-            console.log('[RoomService] Room created successfully:', data);
-            this.currentRoom = data;
-
-            // Auto-join as host
-            await this.joinRoom(data.id);
-
-            return data;
-        } catch (err) {
-            console.error('[RoomService] createRoom exception:', err);
-            throw err;
-        }
+        return new Promise((resolve, reject) => {
+            this.socket.emit('room:create', {
+                hostId: profile.id,
+                username: profile.username,
+                metadata: options.metadata || {}
+            }, (response) => {
+                if (response.success) {
+                    this.currentRoom = response.room;
+                    resolve(response.room);
+                } else {
+                    reject(new Error(response.message || 'Failed to create room'));
+                }
+            });
+        });
     },
 
     /**
      * Join a room by join code
-     * @param {string} joinCode - 6-character room code
-     * @returns {Promise<Object>} Room data
      */
     async joinRoomByCode(joinCode) {
-        const supabase = this.getClient();
-
-        // Find room
-        const { data: room, error: roomError } = await supabase
-            .from('rooms')
-            .select('*')
-            .eq('join_code', joinCode.toUpperCase())
-            .eq('status', 'waiting')
-            .single();
-
-        if (roomError || !room) {
-            throw new Error('Room not found or already started');
-        }
-
-        // Check if room is full
-        const { count } = await supabase
-            .from('room_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('room_id', room.id);
-
-        if (count >= room.max_players) {
-            throw new Error('Room is full');
-        }
-
-        await this.joinRoom(room.id);
-        return room;
-    },
-
-    /**
-     * Join a room by room ID (internal)
-     */
-    async joinRoom(roomId) {
-        const supabase = this.getClient();
         const profile = PlayerService.getCurrentProfile();
+        if (!profile) throw new Error('Must be logged in to join');
 
-        if (!profile) {
-            throw new Error('Must be logged in to join a room');
-        }
-
-        // Check if already in room
-        // Check if already in room
-        const { data: existing } = await supabase
-            .from('room_members')
-            .select('*')
-            .eq('room_id', roomId)
-            .eq('profile_id', profile.id)
-            .maybeSingle();
-
-        if (existing) {
-            console.log('Already in this room');
-            return existing;
-        }
-
-        // Join room
-        const { data, error } = await supabase
-            .from('room_members')
-            .insert({
-                room_id: roomId,
-                profile_id: profile.id,
-                is_ready: false
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        // Fetch full room data
-        const { data: room } = await supabase
-            .from('rooms')
-            .select('*')
-            .eq('id', roomId)
-            .single();
-
-        this.currentRoom = room;
-        await this.fetchMembers();
-
-        return data;
+        return new Promise((resolve, reject) => {
+            this.socket.emit('room:join', {
+                code: joinCode.toUpperCase(),
+                profileId: profile.id,
+                username: profile.username
+            }, (response) => {
+                if (response.success) {
+                    this.currentRoom = response.room;
+                    resolve(response.room);
+                } else {
+                    reject(new Error(response.message || 'Room not found'));
+                }
+            });
+        });
     },
 
     /**
-     * Leave current room
+     * Fetch latest members (not needed as much with live socket updates)
      */
+    async fetchMembers() {
+        return this.currentMembers;
+    },
+
     async leaveRoom() {
-        if (!this.currentRoom) return;
-
-        const supabase = this.getClient();
-        const profile = PlayerService.getCurrentProfile();
-
-        if (!profile) return;
-
-        await supabase
-            .from('room_members')
-            .delete()
-            .eq('room_id', this.currentRoom.id)
-            .eq('profile_id', profile.id);
-
+        if (this.socket) {
+            this.socket.emit('room:leave');
+        }
         this.currentRoom = null;
         this.currentMembers = [];
     },
 
-    /**
-     * Toggle ready status
-     */
     async setReady(isReady) {
-        if (!this.currentRoom) {
-            throw new Error('Not in a room');
-        }
-
-        const supabase = this.getClient();
-        const profile = PlayerService.getCurrentProfile();
-
-        const { error } = await supabase
-            .from('room_members')
-            .update({ is_ready: isReady })
-            .eq('room_id', this.currentRoom.id)
-            .eq('profile_id', profile.id);
-
-        if (error) throw error;
-
-        await this.fetchMembers();
+        this.socket.emit('room:ready', { ready: isReady });
     },
 
-    /**
-     * Start game (host only)
-     */
     async startGame() {
-        if (!this.currentRoom) {
-            throw new Error('Not in a room');
-        }
-
-        const supabase = this.getClient();
-        const profile = PlayerService.getCurrentProfile();
-
-        // Check if host
-        if (this.currentRoom.host_profile_id !== profile.id) {
-            throw new Error('Only host can start the game');
-        }
-
-        const { error } = await supabase
-            .from('rooms')
-            .update({
-                status: 'in_progress',
-                starts_at: new Date().toISOString()
-            })
-            .eq('id', this.currentRoom.id);
-
-        if (error) throw error;
-
-        this.currentRoom.status = 'in_progress';
+        this.socket.emit('room:start_game');
     },
 
     /**
-     * Fetch current room members
+     * Broadcast generic game event
      */
-    async fetchMembers() {
-        if (!this.currentRoom) return [];
-
-        const supabase = this.getClient();
-
-        const { data, error } = await supabase
-            .from('room_members')
-            .select(`
-                *,
-                profiles (*)
-            `)
-            .eq('room_id', this.currentRoom.id);
-
-        if (!error && data) {
-            this.currentMembers = data;
-        }
-
-        return this.currentMembers;
+    broadcastEvent(event, data) {
+        if (!this.socket) return;
+        this.socket.emit('game:event', { type: event, ...data });
     },
 
-    /**
-     * Subscribe to room updates
-     */
+    // Mock/No-op for existing sub-system compatibility
     subscribeToRoom(roomId, callbacks = {}) {
-        const supabase = this.getClient();
+        console.log('[RoomService] Redirecting live updates to UI...');
 
-        const channel = supabase
-            .channel(`room:${roomId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'room_members',
-                    filter: `room_id=eq.${roomId}`
-                },
-                (payload) => {
-                    if (callbacks.onMemberChange) {
-                        callbacks.onMemberChange(payload);
-                    }
-                    this.fetchMembers();
-                }
-            )
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'rooms',
-                    filter: `id=eq.${roomId}`
-                },
-                (payload) => {
-                    if (callbacks.onRoomUpdate) {
-                        callbacks.onRoomUpdate(payload);
-                    }
-                    this.currentRoom = payload.new;
-                }
-            )
-            .subscribe();
+        const updateUI = () => {
+            if (callbacks.onMemberChange) callbacks.onMemberChange(this.currentMembers);
+            if (callbacks.onRoomUpdate) callbacks.onRoomUpdate({ new: this.currentRoom });
+        };
 
-        return channel;
+        const signalStart = (data) => {
+            console.log('[RoomService] Forwarding server start-signal to UI');
+            if (callbacks.onRoomUpdate) {
+                callbacks.onRoomUpdate({ new: { ...this.currentRoom, status: 'in_progress' } });
+            }
+        };
+
+        this.socket.on('room_update', updateUI);
+        this.socket.on('game_start', signalStart);
+        this.socket.on('game:event', (payload) => {
+            if (callbacks.onGameEvent) callbacks.onGameEvent(payload);
+        });
+
+        return {
+            unsubscribe: () => {
+                this.socket.off('room_update', updateUI);
+                this.socket.off('game_start', signalStart);
+            }
+        };
     },
 
-    /**
-     * Get current room
-     */
-    getCurrentRoom() {
-        return this.currentRoom;
-    },
-
-    /**
-     * Get current members
-     */
-    getMembers() {
-        return this.currentMembers;
-    },
-
-    /**
-     * Fallback code generator if function doesn't exist
-     */
-    _generateFallbackCode() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let code = '';
-        for (let i = 0; i < 6; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return code;
-    }
+    getCurrentRoom() { return this.currentRoom; },
+    getMembers() { return this.currentMembers; }
 };

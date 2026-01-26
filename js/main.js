@@ -8,32 +8,50 @@ import { AuthUI } from './ui/AuthUI.js';
 import { LobbyUI } from './ui/LobbyUI.js';
 import { StoreUI } from './ui/StoreUI.js';
 import { InventoryUI } from './ui/InventoryUI.js';
+import { RoomService } from './modules/RoomService.js';
 
 window.menuBackground = null;
 
-window.onload = async () => {
-    // Init Services
-    try {
-        PlayerService.init({
-            url: CONFIG.SUPABASE_URL,
-            anonKey: CONFIG.SUPABASE_ANON_KEY
-        });
-        AuthUI.init();
-        LobbyUI.init();
-        window.LobbyUI = LobbyUI; // Expose for Navigation
-        StoreUI.init();
-        InventoryUI.init();
-    } catch (e) {
-        console.warn("Supabase init failed (check config.js):", e);
-    }
-
-    window.audioManager = new AudioManager();
-    const nav = new Navigation();
-
+window.onload = () => {
+    // 1. CACHE UI ELEMENTS IMMEDIATELY
     const initBtn = document.getElementById('btn-initialize');
     const bootScreen = document.getElementById('boot-screen');
     const mainMenu = document.getElementById('main-menu');
     const volumeSlider = document.getElementById('volume-slider');
+    const transitionLayer = document.getElementById('transition-layer');
+
+    console.log("[Main] DOM Content Ready. Binding UI...");
+
+    // 2. INITIALIZE AUDIO & NAVIGATION EARLY (Non-blocking)
+    window.audioManager = new AudioManager();
+    const nav = new Navigation();
+
+    // 3. SERVICE INITIALIZATION (Background/Non-blocking)
+    const initServices = async () => {
+        try {
+            console.log("[Main] Starting services in background...");
+            await PlayerService.init();
+            AuthUI.init();
+            LobbyUI.init();
+            window.LobbyUI = LobbyUI;
+            RoomService.init();
+            window.RoomService = RoomService;
+            StoreUI.init();
+            InventoryUI.init();
+            console.log("[Main] Background services initialized.");
+        } catch (e) {
+            console.error("[Main] Service init error:", e);
+        }
+    };
+    initServices();
+
+    // 4. GLOBAL CLICK DEBUGGER
+    window.addEventListener('click', (e) => {
+        const boot = document.getElementById('boot-screen');
+        const ui = document.getElementById('ui-layer');
+        console.log(`[Global Click] Target:`, e.target, `| ID:`, e.target.id);
+        console.log(`[Layer Status] Transition: ${transitionLayer?.classList.contains('active')}, Boot: ${boot ? window.getComputedStyle(boot).display : 'N/A'}, UI Pointer: ${ui ? window.getComputedStyle(ui).pointerEvents : 'N/A'}`);
+    }, true);
 
     if (volumeSlider) {
         volumeSlider.addEventListener('input', (e) => {
@@ -43,6 +61,7 @@ window.onload = async () => {
 
     if (initBtn) {
         initBtn.onclick = async () => {
+            console.log("[Main] LAUNCH GAME (btn-initialize) clicked.");
             // 1. Lock Button visually immediately
             initBtn.style.pointerEvents = 'none';
             initBtn.style.opacity = "0.5";
@@ -65,13 +84,15 @@ window.onload = async () => {
             // 5. Visual Transition
             if (bootScreen) {
                 requestAnimationFrame(() => {
+                    // 4. Hide Boot Screen Completely
                     bootScreen.classList.add('fade-out');
-                    // Activate Menu IMMEDIATELY when fade starts
+                    setTimeout(() => {
+                        bootScreen.style.display = 'none'; // Force removal from flow
+                    }, 1000);
+
+                    // 5. Open Main Menu IMMEDIATELY when fade starts
                     if (mainMenu) mainMenu.classList.add('active');
                 });
-                setTimeout(() => {
-                    bootScreen.style.display = 'none';
-                }, 1500);
             }
 
             if (window.menuBackground === null) {
@@ -174,6 +195,7 @@ window.onload = async () => {
             }
         };
     }
+    console.log("[Main] window.onload complete. System ready.");
 }
 // A safer way to open windows
 function openWindow(id) {

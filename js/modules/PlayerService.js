@@ -1,44 +1,66 @@
-/**
- * Player Service Module
- * Handles player authentication and profile management.
- * Updated to work with existing database schema (auth_id, profiles table)
- */
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+// js/modules/PlayerService.js
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+import { CONFIG } from '../config.js';
 
 export const PlayerService = {
     client: null,
     session: null,
     profile: null,
+    _loadingProfileId: null, // Track currently loading ID to avoid races
+    _profilePromise: null,   // Store promise to allow multiple listeners to wait on same request
 
     /**
      * Initialize the Supabase Client
      */
-    init(config) {
+    async init() {
         if (this.client) return;
-        console.log('[PlayerService] Initializing with URL:', config.url);
+        console.log('[PlayerService] Initializing with Supabase v2.45.4...');
+        console.log('[PlayerService] Security Context:', window.isSecureContext ? 'SECURE' : 'NON-SECURE');
 
-        this.client = createClient(config.url, config.anonKey, {
+        this.client = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
                 autoRefreshToken: true,
+                lockType: 'null', // Mandatory for non-secure or buggy environments
+                storageKey: 'sector-zero-session',
+                detectSessionInUrl: false
             }
         });
 
         // Listen for auth changes
         this.client.auth.onAuthStateChange(async (event, session) => {
             console.log('[PlayerService] Auth Event:', event, session?.user?.email);
+            const oldSessionId = this.session?.user?.id;
             this.session = session;
 
-            if (event === 'SIGNED_IN' && session) {
-                await this._loadProfile(session.user.id);
+            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+                // Avoid redundant loads if session basically same
+                if (oldSessionId !== session.user.id || !this.profile) {
+                    await this._loadProfile(session.user.id);
+                }
             } else if (event === 'SIGNED_OUT') {
                 this.profile = null;
                 this._notifyUpdate();
-            } else if (event === 'INITIAL_SESSION') {
-                if (session) await this._loadProfile(session.user.id);
             }
         });
+
+        // Initial session check
+        try {
+            console.log('[PlayerService] Getting initial session...');
+            const { data: { session }, error } = await this.client.auth.getSession();
+            if (error) console.error('[PlayerService] getSession Error:', error);
+
+            this.session = session;
+            if (session) {
+                console.log('[PlayerService] Session found for:', session.user.email);
+                await this._loadProfile(session.user.id);
+            } else {
+                console.log('[PlayerService] No active session.');
+            }
+        } catch (err) {
+            console.warn('[PlayerService] Fatal initialization error during getSession:', err);
+            // We don't re-throw here so the rest of the app can attempt to boot
+        }
     },
 
     getClient() {
@@ -50,56 +72,117 @@ export const PlayerService = {
      * Load user profile from database
      */
     async _loadProfile(authId) {
-        console.log('[PlayerService] Loading profile for:', authId);
-        const supabase = this.getClient();
-
-        try {
-            // Add timeout to prevent hanging
-            const profilePromise = supabase
-                .from('profiles')
-                .select('*')
-                .eq('auth_id', authId)
-                .single();
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Profile query timeout after 5 seconds')), 5000)
-            );
-
-            const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
-
-            console.log('[PlayerService] Profile query finished. Data:', data ? 'FOUND' : 'NOT FOUND', 'Error:', error?.message || 'NONE');
-
-            if (error) {
-                console.error('[PlayerService] Profile load error:', error);
-                console.error('[PlayerService] Full error details:', JSON.stringify(error, null, 2));
-            }
-
-            if (data) {
-                console.log('[PlayerService] Profile loaded:', data.username);
-                this.profile = {
-                    ...data,
-                    // Ensure defaults
-                    level: data.level || 1,
-                    xp: data.xp || 0,
-                    neon_tokens: data.neon_tokens || 0,
-                    is_anonymous: this.session?.user?.is_anonymous || false
-                };
-                this._notifyUpdate();
-            } else if (!error) {
-                console.warn('[PlayerService] No profile found and no error - profile may not exist');
-            }
-        } catch (err) {
-            console.error('[PlayerService] Profile load exception:', err);
+        // 1. If we are already loading THIS ID, reuse promise
+        if (this._loadingProfileId === authId && this._profilePromise) {
+            return this._profilePromise;
         }
 
-        return this.profile;
+        this._loadingProfileId = authId;
+        this._profilePromise = (async () => {
+            // Give auth engine a tiny breather to settle state
+            await new Promise(r => setTimeout(r, 400));
+
+            console.log('[PlayerService] Starting profile fetch for:', authId);
+            const supabase = this.getClient();
+            let attempts = 0;
+            const maxAttempts = 3;
+
+            while (attempts < maxAttempts) {
+                try {
+                    console.log(`[PlayerService] Fetching profile (Attempt ${attempts + 1})...`);
+
+                    // Add a 5 second timeout to the request
+                    const fetchWithTimeout = Promise.race([
+                        supabase.from('profiles').select('*').eq('auth_id', authId).single(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Fetch Timeout')), 5000))
+                    ]);
+
+                    const { data, error, status } = await fetchWithTimeout;
+
+                    if (data) {
+                        console.log('[PlayerService] Success: Loaded user', data.username);
+                        this.profile = {
+                            ...data,
+                            level: data.level || 1,
+                            xp: data.xp || 0,
+                            neon_tokens: data.neon_tokens || 0,
+                            is_anonymous: this.session?.user?.is_anonymous || false
+                        };
+                        this._notifyUpdate();
+                        return this.profile;
+                    }
+
+                    if (error) {
+                        const isAbort = error.message?.includes('AbortError') || error.status === 0;
+                        if (isAbort && attempts < maxAttempts - 1) {
+                            attempts++;
+                            console.warn(`[PlayerService] Signal abort. Retry ${attempts}/3...`);
+                            await new Promise(r => setTimeout(r, attempts * 500));
+                            continue;
+                        }
+
+                        console.error('[PlayerService] Fetch failed:', error.message, '| Code:', error.code);
+                        if (error.code === 'PGRST116') {
+                            return await this._createInitialProfile(authId);
+                        }
+                        break;
+                    }
+                } catch (err) {
+                    console.error('[PlayerService] Exception in fetch:', err);
+                    break;
+                }
+                attempts++;
+            }
+
+            // CLEANUP CACHE SO NEXT CALL CAN START FRESH IF NEEDED
+            this._loadingProfileId = null;
+            this._profilePromise = null;
+
+            if (!this.profile) {
+                console.error('[PlayerService] Profile load failed after retries/timeout.');
+            }
+            return this.profile;
+        })();
+
+        return this._profilePromise;
+    },
+
+    /**
+     * Fallback to create profile if trigger failed or didn't exist
+     */
+    async _createInitialProfile(authId) {
+        console.log('[PlayerService] Creating initial profile for:', authId);
+        const supabase = this.getClient();
+        const user = this.session?.user;
+
+        const newProfile = {
+            auth_id: authId,
+            username: user?.user_metadata?.display_name || 'Survivor_' + authId.substring(0, 5),
+            display_name: user?.user_metadata?.display_name || 'Survivor',
+            level: 1,
+            xp: 0,
+            neon_tokens: 500 // Starting bonus
+        };
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .insert(newProfile)
+            .select()
+            .single();
+
+        if (data) {
+            console.log('[PlayerService] Profile created manually:', data.username);
+            this.profile = data;
+            this._notifyUpdate();
+        } else {
+            console.error('[PlayerService] Manual profile creation failed:', error);
+        }
     },
 
     /**
      * Notify UI of profile updates
      */
     _notifyUpdate() {
-        console.log('[PlayerService] Dispatching profile-updated');
         window.dispatchEvent(new CustomEvent('player-profile-updated', {
             detail: { profile: this.profile }
         }));
@@ -123,20 +206,13 @@ export const PlayerService = {
 
         if (error) throw error;
 
-        // Profile will be created by trigger
         if (data.user && data.session) {
             this.session = data.session;
             await this._loadProfile(data.user.id);
-
-            // Update username if profile was created
-            if (this.profile) {
-                await this.updateProfile({ username, display_name: username });
-            }
-
             return { user: data.user, session: data.session, profile: this.profile };
         }
 
-        return { user: data.user, session: null }; // Needs email confirmation
+        return { user: data.user, session: null };
     },
 
     /**
@@ -145,19 +221,16 @@ export const PlayerService = {
     async signInWithEmail(email, password) {
         const supabase = this.getClient();
 
-        console.log('[PlayerService] Calling signInWithPassword for:', email);
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
         });
 
-        console.log('[PlayerService] signInWithPassword finished. Success:', !!data.user, 'Error:', error?.message || 'NONE');
-
         if (error) throw error;
 
         this.session = data.session;
-        await this._loadProfile(data.user.id);
-
+        // RELY ON onAuthStateChange to trigger _loadProfile
+        // await this._loadProfile(data.user.id); 
         return { user: data.user, session: data.session, profile: this.profile };
     },
 
@@ -166,17 +239,6 @@ export const PlayerService = {
      */
     async loginAsGuest(username = 'Guest') {
         const supabase = this.getClient();
-
-        // Check existing session
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session) {
-            this.session = session;
-            await this._loadProfile(session.user.id);
-            return this.profile;
-        }
-
-        // Sign in anonymously
         const { data, error } = await supabase.auth.signInAnonymously();
 
         if (error) throw error;
@@ -184,7 +246,6 @@ export const PlayerService = {
         this.session = data.session;
         await this._loadProfile(data.user.id);
 
-        // Update display name
         if (this.profile) {
             await this.updateProfile({ display_name: username });
         }
@@ -210,6 +271,7 @@ export const PlayerService = {
         await supabase.auth.signOut();
         this.session = null;
         this.profile = null;
+        this._notifyUpdate();
     },
 
     /**
@@ -229,21 +291,19 @@ export const PlayerService = {
 
         if (!error && data) {
             this.profile = data;
+            this._notifyUpdate();
         }
 
         return this.profile;
     },
 
     /**
-     * Delete user account (Wipe profile and sign out)
+     * Delete user account
      */
     async deleteAccount() {
         if (!this.profile) return;
         const supabase = this.getClient();
 
-        // 1. Delete the profile from the 'profiles' table
-        // Note: The actual auth user can only be deleted via management API or dashboard usually,
-        // but we can at least wipe their data and log them out.
         const { error } = await supabase
             .from('profiles')
             .delete()
@@ -251,7 +311,6 @@ export const PlayerService = {
 
         if (error) throw error;
 
-        // 2. Log out
         await this.logout();
     },
 
@@ -269,8 +328,8 @@ export const PlayerService = {
         if (!this.profile) return;
 
         const updates = {};
-        if (money !== undefined) updates.money = money;
-        if (exp !== undefined) updates.exp = exp;
+        if (money !== undefined) updates.neon_tokens = money;
+        if (exp !== undefined) updates.xp = exp;
         if (level !== undefined) updates.level = level;
 
         return await this.updateProfile(updates);

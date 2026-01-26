@@ -3,6 +3,7 @@ import { Game } from '../core/Game.js';
 
 export class Navigation {
     constructor() {
+        console.log("[Navigation] Initialized");
         this.selectedLevelId = null;
         this.setupEventListeners();
         this.setupKeyboardListeners();
@@ -18,7 +19,8 @@ export class Navigation {
 
         levels.forEach(level => {
             const mapCard = document.createElement('div');
-            mapCard.className = 'map-card'; // Changed from map-btn to map-card
+            mapCard.className = 'map-card';
+            mapCard.dataset.id = level.id; // CRITICAL: Added for selection logic
             if (this.selectedLevelId === level.id) mapCard.classList.add('selected');
 
             mapCard.innerHTML = `
@@ -86,6 +88,7 @@ export class Navigation {
 
     setupEventListeners() {
         const startBtn = document.getElementById('btn-start');
+        console.log("[Navigation] Binding startBtn:", !!startBtn);
         const logsBtn = document.getElementById('btn-logs');
         const settingsBtn = document.getElementById('btn-settings');
 
@@ -104,7 +107,9 @@ export class Navigation {
                 this.closeMenu(logsOverlay);
                 this.closeMenu(settingsOverlay);
                 this.populateMapList();
+                console.log("[Navigation] Showing deployment overlay...");
                 deploymentOverlay.classList.remove('hidden');
+                console.log("[Navigation] Deployment overlay hidden state:", deploymentOverlay.classList.contains('hidden'));
             };
         }
 
@@ -119,6 +124,10 @@ export class Navigation {
                     console.log("Deploying to:", targetLevelId);
 
                     const transitionLayer = document.getElementById('transition-layer');
+                    if (transitionLayer) {
+                        transitionLayer.classList.remove('active'); // Ensure start state is clean
+                        transitionLayer.style.display = 'flex'; // Ensure it's not display: none
+                    }
                     const mainMenu = document.getElementById('main-menu');
 
                     transitionLayer.classList.add('active');
@@ -134,14 +143,24 @@ export class Navigation {
                             window.game.stop();
                         }
 
+                        console.log("[Navigation] Transition starting...");
                         // USE THE CAPTURED ID HERE
                         window.game = new Game('game-canvas', targetLevelId);
 
                         setTimeout(() => {
                             transitionLayer.classList.remove('active');
+                            console.log("[Navigation] Transition complete. HUD should be visible.");
+
+                            // FORCE UI LAYER RE-ENABLE
+                            const uiLayer = document.getElementById('ui-layer');
+                            if (uiLayer) {
+                                uiLayer.style.pointerEvents = 'auto'; // Ensure we can click again
+                            }
                         }, 800);
 
-                    }, 1400); // 1.4 seconds for a solid "Initializing" feel
+                    }, 1400);
+                } else {
+                    console.error("[Navigation] Cannot deploy: No level selected!");
                 }
             };
         }

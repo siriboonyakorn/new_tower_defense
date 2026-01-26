@@ -6,6 +6,7 @@ import { RoomService } from '../modules/RoomService.js';
 import { PlayerService } from '../modules/PlayerService.js';
 import { ProgressionManager } from '../modules/ProgressionManager.js';
 import { levels } from '../data/levels.js';
+import { Game } from '../core/Game.js';
 
 export const LobbyUI = {
     elements: {},
@@ -15,6 +16,7 @@ export const LobbyUI = {
         console.log('[LobbyUI] Initializing...');
         this.cacheElements();
         this.bindEvents();
+        this.updatePlayerStats();
     },
 
     cacheElements() {
@@ -116,6 +118,12 @@ export const LobbyUI = {
         window.addEventListener('player-profile-updated', () => {
             console.log('[LobbyUI] Profile updated event received');
             this.updatePlayerStats();
+        });
+
+        // Listen for socket room updates
+        window.addEventListener('room-data-updated', () => {
+            console.log('[LobbyUI] Socket room update received');
+            this.updateMembersList();
         });
     },
 
@@ -316,12 +324,15 @@ export const LobbyUI = {
             const isHost = member.profile_id === room.host_profile_id;
             const isSelf = member.profile_id === profile.id;
 
+            // HANDLE BOTH SUPABASE (OLD) AND SOCKET (NEW) STRUCTURES
+            const displayName = member.username || (member.profiles ? (member.profiles.display_name || member.profiles.username) : 'UNKNOWN');
+
             return `
                 <div class="member-card ${isHost ? 'host' : ''}">
                     <div class="member-info">
                         <span class="member-icon">${isHost ? '👑' : '👤'}</span>
                         <span class="member-name">
-                            ${member.profiles.display_name || member.profiles.username}
+                            ${displayName}
                             ${isSelf ? ' (You)' : ''}
                         </span>
                         ${isHost ? '<span class="member-role">HOST</span>' : ''}
@@ -364,6 +375,7 @@ export const LobbyUI = {
 
     async startGame() {
         try {
+            console.log('[LobbyUI] Requesting game start from server...');
             await RoomService.startGame();
             this.setMessage(this.elements.roomMessage, 'Starting game...', 'success');
             // The subscription update will trigger the actual transition for everyone

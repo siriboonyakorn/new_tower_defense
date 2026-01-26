@@ -217,9 +217,16 @@ export const AuthUI = {
         e.preventDefault();
         const email = this.elements.loginEmail.value;
         const pass = this.elements.loginPass.value;
+        const submitBtn = this.elements.loginForm.querySelector('button[type="submit"]');
 
         console.log('[AuthUI] Starting login for:', email);
         this.setMessage(this.elements.loginMsg, "AUTHENTICATING...", "");
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.dataset.originalText = submitBtn.textContent;
+            submitBtn.textContent = "...";
+        }
 
         try {
             console.log('[AuthUI] Calling signInWithEmail...');
@@ -232,7 +239,16 @@ export const AuthUI = {
             }, 1000);
         } catch (err) {
             console.error('[AuthUI] Login error:', err);
-            this.setMessage(this.elements.loginMsg, "ACCESS DENIED: " + err.message, "error");
+            let msg = err.message;
+            if (msg.includes('rate limit')) {
+                msg = "TOO MANY ATTEMPTS. PLEASE WAIT A FEW MINUTES.";
+            }
+            this.setMessage(this.elements.loginMsg, "ACCESS DENIED: " + msg, "error");
+
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = submitBtn.dataset.originalText;
+            }
         }
     },
 
@@ -241,8 +257,15 @@ export const AuthUI = {
         const email = this.elements.signupEmail.value;
         const pass = this.elements.signupPass.value;
         const username = this.elements.signupUser.value;
+        const submitBtn = this.elements.signupForm.querySelector('button[type="submit"]');
 
         this.setMessage(this.elements.signupMsg, "CREATING IDENTITY...", "");
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.dataset.originalText = submitBtn.textContent;
+            submitBtn.textContent = "...";
+        }
 
         try {
             const result = await PlayerService.signUpWithEmail(email, pass, username);
@@ -255,10 +278,23 @@ export const AuthUI = {
                 }, 1000);
             } else {
                 this.setMessage(this.elements.signupMsg, "CONFIRMATION LINK SENT TO EMAIL.", "success");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = submitBtn.dataset.originalText;
+                }
             }
         } catch (err) {
             console.error(err);
-            this.setMessage(this.elements.signupMsg, "ERROR: " + err.message, "error");
+            let msg = err.message;
+            if (msg.includes('rate limit')) {
+                msg = "TOO MANY ATTEMPTS. PLEASE WAIT A FEW MINUTES.";
+            }
+            this.setMessage(this.elements.signupMsg, "ERROR: " + msg, "error");
+
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = submitBtn.dataset.originalText;
+            }
         }
     },
 

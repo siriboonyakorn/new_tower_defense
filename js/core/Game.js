@@ -8,6 +8,8 @@ import { Tower } from '../entities/Tower.js';
 import { Enemy } from '../entities/Enemy.js';
 import { levels } from '../data/levels.js';
 import * as Loop from './Loop.js';
+import { ProgressionManager } from '../modules/ProgressionManager.js';
+import { PlayerService } from '../modules/PlayerService.js';
 
 export class Game {
     constructor(canvasId, levelId) {
@@ -58,7 +60,8 @@ export class Game {
 
         // Input
         this.mouse = { x: 0, y: 0 };
-        this.hoveredTile = { x: 0, y: 0 };
+        // Initialize hoveredTile to screen center to prevent corner placement before mouse moves
+        this.hoveredTile = { x: this.width / 2, y: this.height / 2 };
         this.selectedTowerType = null;
         this.selectedTower = null;
         this.hoveredEnemy = null;
@@ -587,6 +590,13 @@ export class Game {
     victory() {
         this.isRunning = false;
 
+        // Calculate rewards
+        const levelData = levels.find(l => l.id === this.levelId) || { multiplier: 1.0 };
+        const rewards = ProgressionManager.calculateMatchRewards('win', this.waveIndex, levelData.multiplier);
+
+        // Award rewards to player
+        this.awardRewards(rewards);
+
         const screen = document.getElementById('end-screen');
         const card = document.querySelector('.end-card');
         const title = document.getElementById('end-title');
@@ -596,6 +606,9 @@ export class Game {
         title.innerText = "SECTOR SECURED";
         reason.innerText = "MISSION ACCOMPLISHED";
         waves.innerText = `${this.waveIndex} / ${this.waves.length}`;
+
+        // Display rewards on screen
+        this.displayRewards(rewards);
 
         // Set Style (Green)
         card.className = 'end-card victory';
@@ -621,6 +634,13 @@ export class Game {
     gameOver() {
         this.isRunning = false; // Stop game loop
 
+        // Calculate rewards (partial for loss)
+        const levelData = levels.find(l => l.id === this.levelId) || { multiplier: 1.0 };
+        const rewards = ProgressionManager.calculateMatchRewards('loss', this.waveIndex, levelData.multiplier);
+
+        // Award rewards
+        this.awardRewards(rewards);
+
         const screen = document.getElementById('end-screen');
         const card = document.querySelector('.end-card');
         const title = document.getElementById('end-title');
@@ -631,6 +651,9 @@ export class Game {
         title.innerText = "SYSTEM FAILURE";
         reason.innerText = "BASE DESTROYED";
         waves.innerText = `${this.waveIndex} / ${this.waves.length}`;
+
+        // Display rewards on screen
+        this.displayRewards(rewards);
 
         // 2. Set Style (Red)
         card.className = 'end-card defeat';
@@ -1021,5 +1044,62 @@ export class Game {
                 if (transitionSub) transitionSub.innerText = "ENCRYPTING UPLINK...";
             }, 800);
         }, 1400);
+    }
+
+    // --- REWARD SYSTEM ---
+
+    /**
+     * Award XP and tokens to the player profile
+     */
+    async awardRewards(rewards) {
+        const profile = PlayerService.getCurrentProfile();
+
+        if (profile && !profile.is_anonymous) {
+            console.log(`[Rewards] Awarding: +${rewards.xp} XP, +${rewards.tokens} Tokens`);
+
+            // Calculate new values
+            const newXP = (profile.xp || 0) + rewards.xp;
+            const newTokens = (profile.neon_tokens || 0) + rewards.tokens;
+
+            // Check for level up
+            const levelUp = ProgressionManager.checkLevelUp(newXP, profile.level || 1);
+
+            // Update profile
+            const updates = {
+                xp: levelUp ? levelUp.xp : newXP,
+                neon_tokens: newTokens
+            };
+
+            if (levelUp) {
+                updates.level = levelUp.level;
+                console.log(`[Rewards] Level up! New level: ${levelUp.level}`);
+            }
+
+            await PlayerService.updateProfile(updates);
+        } else {
+            console.log('[Rewards] Guest mode - rewards not saved to profile');
+        }
+    }
+
+    /**
+     * Display rewards on the end screen
+     */
+    displayRewards(rewards) {
+        const statsDiv = document.querySelector('.end-stats');
+        if (statsDiv) {
+            // Remove any existing rewards display
+            const existing = statsDiv.querySelector('.end-rewards');
+            if (existing) existing.remove();
+
+            // Add new reward display
+            const rewardsHTML = `
+                <p class="end-rewards">
+                    <span class="reward-item">+${rewards.xp} XP</span>
+                    <span class="reward-separator">•</span>
+                    <span class="reward-item">+${rewards.tokens} ◈</span>
+                </p>
+            `;
+            statsDiv.insertAdjacentHTML('beforeend', rewardsHTML);
+        }
     }
 }

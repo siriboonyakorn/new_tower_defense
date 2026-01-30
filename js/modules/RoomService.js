@@ -214,16 +214,23 @@ export const RoomService = {
             throw new Error('Only host can start the game');
         }
 
-        const { error } = await supabase
+        console.log('[RoomService] Starting game for room:', this.currentRoom.id);
+
+        const { data, error } = await supabase
             .from('rooms')
             .update({
                 status: 'in_progress',
                 starts_at: new Date().toISOString()
             })
-            .eq('id', this.currentRoom.id);
+            .eq('id', this.currentRoom.id)
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[RoomService] Error updating room status:', error);
+            throw error;
+        }
 
+        console.log('[RoomService] Room status updated successfully:', data);
         this.currentRoom.status = 'in_progress';
     },
 
@@ -256,6 +263,8 @@ export const RoomService = {
     subscribeToRoom(roomId, callbacks = {}) {
         const supabase = this.getClient();
 
+        console.log('[RoomService] Setting up subscription for room:', roomId);
+
         const channel = supabase
             .channel(`room:${roomId}`)
             .on(
@@ -267,6 +276,7 @@ export const RoomService = {
                     filter: `room_id=eq.${roomId}`
                 },
                 (payload) => {
+                    console.log('[RoomService] Member change event received:', payload);
                     if (callbacks.onMemberChange) {
                         callbacks.onMemberChange(payload);
                     }
@@ -282,14 +292,18 @@ export const RoomService = {
                     filter: `id=eq.${roomId}`
                 },
                 (payload) => {
+                    console.log('[RoomService] Room UPDATE event received:', payload);
                     if (callbacks.onRoomUpdate) {
                         callbacks.onRoomUpdate(payload);
                     }
                     this.currentRoom = payload.new;
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('[RoomService] Subscription status:', status);
+            });
 
+        console.log('[RoomService] Subscription channel created');
         return channel;
     },
 

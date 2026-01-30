@@ -229,6 +229,7 @@ export const PlayerService = {
 
         if (!error && data) {
             this.profile = data;
+            this._notifyUpdate();
         }
 
         return this.profile;

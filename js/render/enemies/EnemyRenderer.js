@@ -35,8 +35,81 @@ export function drawEnemies(ctx, game) {
             // Standard Ground Shape (Circle)
             ctx.beginPath();
             ctx.fillStyle = enemy.type.color;
-            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.arc(0, 0, enemy.type.radius || 10, 0, Math.PI * 2);
             ctx.fill();
+
+            // Add extra detail for Tank/Heavy
+            if (enemy.typeName === 'TANK' || enemy.typeName === 'HEAVY') {
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Armor plates
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.fillRect(-6, -6, 4, 4);
+                ctx.fillRect(2, 2, 4, 4);
+            }
+        }
+
+        // --- ADAPTATION EFFECTS ---
+
+        // 1. SHIELDED Effect
+        if (enemy.typeName === 'SHIELDED') {
+            const time = Date.now() * 0.005;
+            const shieldAlpha = 0.3 + Math.sin(time) * 0.1;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, (enemy.type.radius || 10) + 5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 255, 204, ${shieldAlpha})`;
+            ctx.fill();
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Hexagon pattern overlay (simple)
+            ctx.globalAlpha = 0.1;
+            ctx.rotate(time * 0.2);
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const x = Math.cos(angle) * 12;
+                const y = Math.sin(angle) * 12;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        }
+
+        // 2. TELEPORTER Effect (Glitch/Flicker)
+        if (enemy.typeName === 'TELEPORTER') {
+            if (Math.random() < 0.15) {
+                // Ghosting effect
+                ctx.globalAlpha = 0.4;
+                const offsetX = (Math.random() - 0.5) * 15;
+                const offsetY = (Math.random() - 0.5) * 15;
+                ctx.translate(offsetX, offsetY);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, enemy.type.radius || 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff00ff';
+                ctx.fill();
+
+                ctx.translate(-offsetX, -offsetY);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // 3. SPLITTER Effect (Pulsing orange aura)
+        if (enemy.typeName === 'SPLITTER') {
+            const pulse = (Math.sin(Date.now() * 0.01) + 1) / 2;
+            ctx.shadowColor = '#ffaa00';
+            ctx.shadowBlur = 5 + pulse * 10;
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, (enemy.type.radius || 12) + 2, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         ctx.shadowBlur = 0;

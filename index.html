@@ -15,6 +15,7 @@
     <!-- Socket.io for Multiplayer -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="css/components/notifications.css">
+    <link rel="stylesheet" href="css/components/tasks.css">
 </head>
 
 <body>
@@ -109,6 +110,19 @@
                     <button id="btn-settings" class="menu-item">
                         <span class="icon">☼</span> SETTINGS
                     </button>
+
+                    <button id="btn-tasks" class="menu-item">
+                        <span class="icon">📋</span> TASKS
+                    </button>
+                </div>
+
+                <div id="daily-modifier-container" class="daily-modifier-widget hidden">
+                    <div class="mod-icon" id="mod-icon">⚡</div>
+                    <div class="mod-details">
+                        <div class="mod-label">TODAY'S MODIFIER</div>
+                        <div class="mod-name" id="mod-name">LOADING...</div>
+                        <div class="mod-desc" id="mod-desc">Connecting to tactical network...</div>
+                    </div>
                 </div>
 
                 <!-- Bottom Right Account Button (Now outside the top bar) -->
@@ -306,6 +320,11 @@
                 >> SKIP WAVE (EARN BONUS)
             </button>
         </div>
+
+        <!-- TASKS TOGGLE -->
+        <button id="btn-task-toggle" class="btn-task-toggle" title="View Daily Tasks">
+            📋
+        </button>
 
         <!-- BOTTOM COMMAND BAR -->
         <div class="bottom-command-bar">

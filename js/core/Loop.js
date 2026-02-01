@@ -91,7 +91,7 @@ export function updateEntities(game) {
     // 4. Enemies
     game.enemies = game.enemies.filter(enemy => {
         if (enemy.hp <= 0) {
-            game.credits += enemy.type.reward;
+            game.credits += enemy.reward || enemy.type.reward;
             handleEnemyDeathEffects(game, enemy);
             game.updateResourceDisplay();
             return false;
@@ -118,6 +118,7 @@ export function spawnEnemy(game) {
 
     const enemy = new Enemy(
         game,
+        typeKey,
         typeConfig,
         game.path[0].x * game.tileSize + game.tileSize / 2,
         game.path[0].y * game.tileSize + game.tileSize / 2

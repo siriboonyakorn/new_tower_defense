@@ -19,6 +19,7 @@ import { DailyModifier } from '../managers/DailyModifier.js';
 import { MapModifier } from '../managers/MapModifier.js';
 import { notifier } from '../managers/NotificationManager.js';
 import { SecurityManager } from '../managers/SecurityManager.js';
+import { TaskManager } from '../managers/TaskManager.js';
 
 export class Game {
     constructor(canvasId, levelId) {
@@ -240,6 +241,19 @@ export class Game {
 
         // APPLY ADAPTATION
         nextEnemies = AdaptationManager.adaptSpawnQueue(nextEnemies, this.waveIndex);
+
+        // APPLY DAILY MODIFIER (COUNT MULTIPLIER)
+        const dailyMods = DailyModifier.getEnemyModifiers();
+        if (dailyMods.count > 1.0) {
+            const extraCount = Math.floor(nextEnemies.length * (dailyMods.count - 1.0));
+            for (let i = 0; i < extraCount; i++) {
+                const randIdx = Math.floor(Math.random() * nextEnemies.length);
+                nextEnemies.push(nextEnemies[randIdx]);
+            }
+            // Shuffle to mix the new enemies in
+            nextEnemies.sort(() => Math.random() - 0.5);
+            console.log(`[DailyModifier] Swarm active: Added ${extraCount} extra enemies.`);
+        }
 
         this.spawnQueue.unshift(...nextEnemies);
 
@@ -866,6 +880,9 @@ export class Game {
             rewards.xp = Math.floor(rewards.xp * challengeResult.totalXpMult);
             rewards.tokens = Math.floor(rewards.tokens * challengeResult.totalTokenMult);
             console.log(`[Game] Challenges completed: ${challengeResult.completed.map(c => c.name).join(', ')}`);
+
+            // Sync with Daily Tasks
+            TaskManager.checkCompletion(challengeResult.completed.map(c => c.id));
         }
 
         // Award rewards to player (Server-Side)
@@ -914,6 +931,12 @@ export class Game {
 
         // Award rewards (Server-Side)
         await this.awardRewards('loss', this.waveIndex);
+
+        // Evaluate challenges even on loss (some might still be possible?)
+        const challengeResult = ChallengeManager.evaluate(this);
+        if (challengeResult.completed.length > 0) {
+            TaskManager.checkCompletion(challengeResult.completed.map(c => c.id));
+        }
 
         this.matchRecorded = true;
 

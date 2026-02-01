@@ -11,6 +11,9 @@ import { InventoryUI } from './ui/InventoryUI.js';
 import { HistoryUI } from './ui/HistoryUI.js';
 import { RoomService } from './modules/RoomService.js';
 import { RedisManager } from './managers/RedisManager.js';
+import { DailyModifier } from './managers/DailyModifier.js';
+import { TaskManager } from './managers/TaskManager.js';
+import { TaskUI } from './ui/TaskUI.js';
 
 window.menuBackground = null;
 
@@ -41,6 +44,13 @@ window.onload = () => {
             StoreUI.init();
             InventoryUI.init();
             HistoryUI.init();
+
+            // Daily Systems
+            DailyModifier.init();
+            TaskManager.init();
+            TaskUI.init();
+            displayDailyModifier();
+
             console.log("[Main] Background services initialized.");
         } catch (e) {
             console.error("[Main] Service init error:", e);
@@ -198,7 +208,30 @@ window.onload = () => {
             }
         };
     }
+    // --- TASK BUTTONS ---
+    const btnTasks = document.getElementById('btn-tasks');
+    if (btnTasks) {
+        btnTasks.onclick = () => TaskUI.toggle();
+    }
+
+    const btnTaskToggle = document.getElementById('btn-task-toggle');
+    if (btnTaskToggle) {
+        btnTaskToggle.onclick = () => TaskUI.toggle();
+    }
+
     console.log("[Main] window.onload complete. System ready.");
+}
+
+function displayDailyModifier() {
+    const info = DailyModifier.getCurrentInfo();
+    const container = document.getElementById('daily-modifier-container');
+    if (!info || !container) return;
+
+    document.getElementById('mod-icon').innerText = info.icon || '⚡';
+    document.getElementById('mod-name').innerText = info.name || 'NORMAL OPS';
+    document.getElementById('mod-desc').innerText = info.description || 'Standard combat parameters active.';
+
+    container.classList.remove('hidden');
 }
 // A safer way to open windows
 function openWindow(id) {

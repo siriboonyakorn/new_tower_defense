@@ -2,6 +2,7 @@ import { Troop } from './Troop.js';
 import { SynergyManager } from '../managers/SynergyManager.js';
 import { notifier } from '../managers/NotificationManager.js';
 import { AdaptationManager } from '../managers/AdaptationManager.js';
+import { DailyModifier } from '../managers/DailyModifier.js';
 
 export class Tower {
     constructor(game, x, y, type) {
@@ -23,10 +24,13 @@ export class Tower {
         // Cooldown safety check
         if (cd < 10) cd *= 1000;
 
+        // Apply Daily Modifiers
+        const towerMods = DailyModifier.getTowerModifiers();
+
         // Ensure stats are instance-based
         this.level = 1;
-        this.range = type.range;
-        this.damage = type.damage;
+        this.range = type.range * towerMods.range;
+        this.damage = type.damage * towerMods.damage;
         this.cooldown = cd;
         this.lastShot = 0;
         this.shotsFired = 0; // For Machine Gun proc

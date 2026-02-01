@@ -1,17 +1,23 @@
-// js/entities/Enemy.js
+import { DailyModifier } from '../managers/DailyModifier.js';
 
 export class Enemy {
-    constructor(game, typeConfig, x, y) {
+    constructor(game, typeKey, typeConfig, x, y) {
         this.game = game;
         this.type = typeConfig;
+        this.typeName = typeKey;
+
         this.id = Math.random();
         this.x = x;
         this.y = y;
         this.pathIndex = 0;
-        this.hp = typeConfig.hp;
-        this.maxHp = typeConfig.hp;
-        this.speed = typeConfig.speed;
-        this.baseSpeed = typeConfig.speed;
+
+        // Apply Daily Modifiers
+        const mods = DailyModifier.getEnemyModifiers();
+        this.hp = typeConfig.hp * mods.hp;
+        this.maxHp = this.hp;
+        this.speed = typeConfig.speed * mods.speed;
+        this.baseSpeed = this.speed;
+        this.reward = typeConfig.reward * mods.reward;
 
         // Status Effects
         this.effects = {

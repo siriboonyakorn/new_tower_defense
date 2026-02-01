@@ -70,7 +70,7 @@ export const SecurityManager = {
         // 1. Credit Check: Ensure credits didn't jump by an impossible amount
         // Max income per wave is generally < 5000 in early/mid game
         const creditDiff = game.credits - this.lastCredits;
-        if (creditDiff > 10000 && !game.isPaused) {
+        if (creditDiff > 17500 && !game.isPaused) {
             this.flagCheat('ECONOMY BREACH: Suspicious credit injection detected.');
         }
         this.lastCredits = game.credits;

@@ -63,6 +63,12 @@ export const PlayerService = {
         }
     },
 
+    async loadProfile() {
+        if (this.session) {
+            return this._loadProfile(this.session.user.id);
+        }
+    },
+
     getClient() {
         if (!this.client) throw new Error("PlayerService not initialized. Call init() first.");
         return this.client;

@@ -177,5 +177,34 @@ export const SkinsData = {
                 glow: 'rgba(200, 200, 200, 0.5)'
             }
         }
+    ],
+    // ---------------- FLAK TURRET ----------------
+    flak: [
+        {
+            id: 'default_flak',
+            name: 'Battery Alpha',
+            description: 'Standard anti-air flak battery.',
+            cost: 0,
+            rarity: 'common',
+            colors: {
+                base: '#222',
+                detail: '#444',
+                highlight: '#ffaa00',
+                glow: 'rgba(255, 170, 0, 0.3)'
+            }
+        },
+        {
+            id: 'storm_flak',
+            name: 'Storm Cell',
+            description: 'Deploys localized electrical clouds.',
+            cost: 1500,
+            rarity: 'epic',
+            colors: {
+                base: '#001a1a',
+                detail: '#003333',
+                highlight: '#00ffff',
+                glow: 'rgba(0, 255, 255, 0.6)'
+            }
+        }
     ]
 };

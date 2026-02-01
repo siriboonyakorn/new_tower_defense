@@ -37,23 +37,27 @@ function getWaveComposition(waveNum, totalWaves, count) {
         add('SOLDIER', soldiers);
     }
     else if (progress < 0.75) {
-        // Late Game: Mix of Heavies, Tanks, Soldiers
+        // Late Game: Mix of Heavies, Tanks, Soldiers + Air Support
+        const airScouts = Math.floor(count * 0.2); // 20% Air
         const heavies = Math.floor(count * 0.1);
-        const tanks = Math.floor(count * 0.4);
+        const tanks = Math.floor(count * 0.3);
+
+        add('AIR_SCOUT', airScouts);
         add('HEAVY', heavies);
         add('TANK', tanks);
-        add('SOLDIER', count - heavies - tanks);
+        add('SOLDIER', count - airScouts - heavies - tanks);
     }
     else {
-        // End Game: BOSSES and HEAVIES
-        const bosses = Math.floor(waveNum / 10); // 1 Boss every 10 waves (ish)
+        // End Game: BOSSES, HEAVIES, and AIR HEAVIES
+        const airHeavies = Math.floor(count * 0.15);
+        const bosses = Math.floor(waveNum / 10);
         const ultra = progress > 0.9 ? 1 : 0;
 
         if (ultra) add('BOSS_MEGA', 1);
         else if (bosses > 0) add('BOSS', bosses);
 
-        const remaining = count - bosses - ultra;
-        add('HEAVY', remaining);
+        add('AIR_HEAVY', airHeavies);
+        add('HEAVY', count - airHeavies - bosses - ultra);
     }
 
     // Shuffle array for randomness in spawn order

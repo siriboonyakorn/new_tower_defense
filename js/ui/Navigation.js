@@ -138,6 +138,10 @@ export class Navigation {
                         if (mainMenu) mainMenu.classList.remove('active');
                         document.querySelectorAll('.sub-menu').forEach(m => m.classList.add('hidden'));
 
+                        // HIDE STATS WIDGET TOO
+                        const statsWidget = document.getElementById('player-stats-widget');
+                        if (statsWidget) statsWidget.classList.add('player-stats-hidden');
+
                         if (window.menuBackground) window.menuBackground.stop();
                         if (window.game && typeof window.game.stop === 'function') {
                             window.game.stop();
@@ -150,12 +154,6 @@ export class Navigation {
                         setTimeout(() => {
                             transitionLayer.classList.remove('active');
                             console.log("[Navigation] Transition complete. HUD should be visible.");
-
-                            // FORCE UI LAYER RE-ENABLE
-                            const uiLayer = document.getElementById('ui-layer');
-                            if (uiLayer) {
-                                uiLayer.style.pointerEvents = 'auto'; // Ensure we can click again
-                            }
                         }, 800);
 
                     }, 1400);

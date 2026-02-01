@@ -19,6 +19,17 @@ export class Enemy {
             slow: { intensity: 0, timer: 0 },
             distortion: { timer: 0 }
         };
+
+        this.isAir = !!typeConfig.isAir;
+    }
+
+    takeDamage(amount) {
+        if (this.hp <= 0) return;
+        const damageDealt = Math.min(this.hp, amount);
+        this.hp -= damageDealt;
+        if (this.game) {
+            this.game.sessionDamage += damageDealt;
+        }
     }
 
     update() {
@@ -70,7 +81,7 @@ export class Enemy {
         // Burn (DoT)
         if (this.effects.burn.stacks > 0) {
             // Damage every frame based on stacks
-            this.hp -= (this.effects.burn.stacks * 0.05);
+            this.takeDamage(this.effects.burn.stacks * 0.05);
             if (this.effects.burn.timer < now) {
                 this.effects.burn.stacks = 0;
             }

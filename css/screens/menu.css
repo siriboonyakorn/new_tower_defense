@@ -239,17 +239,25 @@
 }
 
 #main-menu.active .menu-item:nth-child(2) {
-    animation-delay: 0.2s;
+    animation-delay: 0.15s;
 }
 
 #main-menu.active .menu-item:nth-child(3) {
-    animation-delay: 0.3s;
+    animation-delay: 0.2s;
 }
 
 #main-menu.active .menu-item:nth-child(4) {
-    animation-delay: 0.4s;
+    animation-delay: 0.25s;
 }
 
 #main-menu.active .menu-item:nth-child(5) {
-    animation-delay: 0.5s;
+    animation-delay: 0.3s;
+}
+
+#main-menu.active .menu-item:nth-child(6) {
+    animation-delay: 0.35s;
+}
+
+#main-menu.active .menu-item:nth-child(7) {
+    animation-delay: 0.4s;
 }

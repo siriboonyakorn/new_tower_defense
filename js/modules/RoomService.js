@@ -41,6 +41,11 @@ export const RoomService = {
             console.log('[RoomService] Multi-Signal: Game Starting', data);
             window.dispatchEvent(new CustomEvent('game-start-signal', { detail: data }));
         });
+
+        this.socket.on('game:event', (payload) => {
+            console.log('[RoomService] Multi-Event Received:', payload);
+            window.dispatchEvent(new CustomEvent('game-event-received', { detail: payload }));
+        });
     },
 
     getClient() {

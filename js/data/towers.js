@@ -3,6 +3,7 @@ export const TOWER_TYPES = {
         id: 'laser',
         name: 'LASER CANNON',
         type: 'combat',
+        targets: ['air', 'ground'],
         cost: 100,
         range: 160,
         damage: 2,
@@ -34,6 +35,7 @@ export const TOWER_TYPES = {
         id: 'machine',
         name: 'GATLING TURRET',
         type: 'combat',
+        targets: ['air', 'ground'],
         cost: 250,
         range: 120,
         damage: 1,
@@ -65,6 +67,7 @@ export const TOWER_TYPES = {
         id: 'rail',
         name: 'RAILGUN',
         type: 'combat',
+        targets: ['ground'],
         cost: 500,
         range: 300,
         damage: 15,
@@ -151,6 +154,69 @@ export const TOWER_TYPES = {
                     { level: 3, name: 'Air Support', cost: 850, effect: 'unit_air' },
                     { level: 4, name: 'Mass Production', cost: 1600, cooldownMult: 0.6 },
                     { level: 5, name: 'Carrier', cost: 3000, effect: 'double_spawn' }
+                ]
+            }
+        }
+    },
+    COMMANDER: {
+        id: 'commander',
+        name: 'ORBITAL LINK',
+        type: 'manual',
+        cost: 800,
+        range: 9999, // Infinite range, manual targeting
+        damage: 50,
+        cooldown: 5000, // 5 seconds
+        color: '#ff3333',
+        description: 'Coordinate manual airstrikes.',
+        paths: {
+            A: {
+                name: 'Precision Strike',
+                levels: [
+                    { level: 2, name: 'Target-Lock', cost: 500, damageMult: 1.5 },
+                    { level: 3, name: 'Fast Uplink', cost: 1000, cooldownMult: 0.7 },
+                    { level: 4, name: 'Bunker Buster', cost: 2000, damageMult: 2.0 },
+                    { level: 5, name: 'Orbital Cannon', cost: 5000, effect: 'orbital_beam' } // Massive damage beam
+                ]
+            },
+            B: {
+                name: 'Area Denial',
+                levels: [
+                    { level: 2, name: 'Cluster Bomb', cost: 600, effect: 'cluster' },
+                    { level: 3, name: 'Napalm', cost: 1200, effect: 'napalm' }, // Burns area
+                    { level: 4, name: 'Suppression', cost: 1800, effect: 'stun_area' },
+                    { level: 5, name: 'Nuke', cost: 6000, effect: 'nuke' } // Screen wipe
+                ]
+            }
+        }
+    },
+    FLAK: {
+        id: 'flak',
+        name: 'FLAK TURRET',
+        type: 'combat',
+        targets: ['air'],
+        cost: 400,
+        range: 200,
+        damage: 10,
+        cooldown: 800,
+        color: '#ffaa00',
+        description: 'Dedicated anti-air battery with rapid explosive rounds.',
+        paths: {
+            A: {
+                name: 'High Altitude',
+                levels: [
+                    { level: 2, name: 'Optical Tracking', cost: 300, rangeMult: 1.3 },
+                    { level: 3, name: 'Heavy Shells', cost: 600, damageMult: 1.5 },
+                    { level: 4, name: 'Proximity Fuse', cost: 1200, effect: 'splash' },
+                    { level: 5, name: 'Cloud Shredder', cost: 3000, damageMult: 2.0 }
+                ]
+            },
+            B: {
+                name: 'Rapid Barrage',
+                levels: [
+                    { level: 2, name: 'Auto-Loader', cost: 350, cooldownMult: 0.7 },
+                    { level: 3, name: 'Twin Barrels', cost: 800, damageMult: 1.2, cooldownMult: 0.8 },
+                    { level: 4, name: 'Chain Feed', cost: 1500, cooldownMult: 0.5 },
+                    { level: 5, name: 'Storm of Steel', cost: 4000, effect: 'barrage' }
                 ]
             }
         }

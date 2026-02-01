@@ -21,7 +21,7 @@ export class Projectile {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < this.speed) {
-            this.target.hp -= this.damage;
+            this.target.takeDamage(this.damage);
             this.markedForDeletion = true;
             return;
         }

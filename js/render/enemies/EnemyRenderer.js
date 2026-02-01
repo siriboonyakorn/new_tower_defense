@@ -3,15 +3,42 @@ export function drawEnemies(ctx, game) {
         ctx.save();
         ctx.translate(enemy.x, enemy.y);
 
-        ctx.beginPath();
-        if (enemy.effects && enemy.effects.burn && enemy.effects.burn.stacks > 0) {
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#ff4400';
+        if (enemy.isAir) {
+            // Draw Ground Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 15, 12, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Floating Offset
+            const floatY = Math.sin(Date.now() * 0.005) * 5 - 10;
+            ctx.translate(0, floatY);
+
+            // Diamond/Triangular Shape for Air
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(12, 0);
+            ctx.lineTo(0, 12);
+            ctx.lineTo(-12, 0);
+            ctx.closePath();
+            ctx.fillStyle = enemy.type.color;
+            ctx.fill();
+
+            // Cockpit/Glow
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(0, -4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        } else {
+            // Standard Ground Shape (Circle)
+            ctx.beginPath();
+            ctx.fillStyle = enemy.type.color;
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        ctx.fillStyle = enemy.type.color;
-        ctx.arc(0, 0, 10, 0, Math.PI * 2);
-        ctx.fill();
         ctx.shadowBlur = 0;
 
         if (enemy.effects && enemy.effects.distortion && enemy.effects.distortion.timer > 0) {
@@ -21,15 +48,16 @@ export function drawEnemies(ctx, game) {
         }
 
         const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+        const barY = enemy.isAir ? -25 : -18; // Move health bar above air units
 
         // Background (Dark Red)
         ctx.fillStyle = '#400';
-        ctx.fillRect(-15, -18, 30, 4);
+        ctx.fillRect(-15, barY, 30, 4);
 
         // Dynamic Color (Red -> Yellow -> Green)
         const hue = hpPercent * 120;
         ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-        ctx.fillRect(-15, -18, 30 * hpPercent, 4);
+        ctx.fillRect(-15, barY, 30 * hpPercent, 4);
 
         ctx.restore();
     });

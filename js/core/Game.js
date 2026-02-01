@@ -11,6 +11,14 @@ import * as Loop from './Loop.js';
 import { RoomService } from '../modules/RoomService.js';
 import { ProgressionManager } from '../modules/ProgressionManager.js';
 import { PlayerService } from '../modules/PlayerService.js';
+import { HistoryManager } from '../managers/HistoryManager.js';
+import { ChallengeManager } from '../managers/ChallengeManager.js';
+import { EventManager } from '../managers/EventManager.js';
+import { AdaptationManager } from '../managers/AdaptationManager.js';
+import { DailyModifier } from '../managers/DailyModifier.js';
+import { MapModifier } from '../managers/MapModifier.js';
+import { notifier } from '../managers/NotificationManager.js';
+import { SecurityManager } from '../managers/SecurityManager.js';
 
 export class Game {
     constructor(canvasId, levelId) {
@@ -53,6 +61,8 @@ export class Game {
         this.currentWaveConfig = null;
         this.spawnQueue = [];
         this.isPaused = false; // Pause Flag// New mixed wave queue
+        this.notifier = notifier;
+        window.notifier = notifier; // For global access
 
         // Entities
         this.towers = [];
@@ -68,6 +78,13 @@ export class Game {
         this.selectedTower = null;
         this.hoveredEnemy = null;
 
+        // UI Elements for Tab Overlay
+        this.tabOverlay = document.getElementById('tab-overlay');
+        this.tabDamageEl = document.getElementById('tab-damage');
+        this.tabKillsEl = document.getElementById('tab-kills');
+        this.tabHpEl = document.getElementById('tab-hp');
+        this.tabMissionEl = document.getElementById('tab-mission-name');
+
         this.path = [];
         this.setupPath();
 
@@ -75,8 +92,32 @@ export class Game {
         this.room = RoomService.getCurrentRoom();
         this.setupMultiplayer();
 
+        // Stats Tracking
+        this.startTime = Date.now();
+        this.sessionDamage = 0;
+        this.sessionKills = 0;
+
+        // Initialize Challenge Tracking
+        ChallengeManager.init();
+
+        // Initialize Event System
+        EventManager.init();
+
+        // Initialize Adaptation System
+        AdaptationManager.init();
+
+        // Initialize Daily Modifier
+        DailyModifier.init();
+        DailyModifier.applyToGame(this);
+
         // DYNAMIC TILE SIZE: Calculate based on path dimensions to fit screen
         this.calculateDynamicTileSize();
+
+        // Initialize Dynamic Map Zones
+        MapModifier.init(this);
+
+        // Time Rewind / Checkpoint System
+        this.lastWaveState = null;
 
         this.setupInputs();
         this.setupUI();
@@ -87,7 +128,13 @@ export class Game {
         // Show UI
         document.getElementById('game-hud').classList.remove('hidden');
         document.getElementById('main-menu').classList.remove('active'); // HIDE MENU
-        // document.getElementById('btn-toggle-build').classList.remove('hidden'); // REMOVED
+
+        // HIDE PLAYER STATS WIDGET DURING GAMEPLAY
+        const statsWidget = document.getElementById('player-stats-widget');
+        if (statsWidget) statsWidget.classList.add('player-stats-hidden');
+
+        // Aiming Mode for Manual Towers
+        this.isAiming = false;
 
         // Ensure build menu is visible and inspect menu is hidden
         const buildMenu = document.getElementById('build-menu');
@@ -107,6 +154,9 @@ export class Game {
         }
 
         this.updateResourceDisplay();
+
+        // Initialize Security
+        SecurityManager.init(this);
 
         this.loop();
     }
@@ -133,6 +183,9 @@ export class Game {
     loop = () => {
         if (!this.isRunning) return;
 
+        // Security Tick Validation
+        if (!SecurityManager.validateTick()) return;
+
         if (!this.isPaused) {
             this.update();
         }
@@ -147,6 +200,7 @@ export class Game {
     }
 
     handleEnemyDeathEffects(enemy) {
+        this.sessionKills++;
         Loop.handleEnemyDeathEffects(this, enemy);
     }
 
@@ -161,6 +215,9 @@ export class Game {
     // js/core/Game.js
 
     startNextWave() {
+        // Reset security buffers to prevent false positives from wave load spikes
+        SecurityManager.reset();
+
         const nextIdx = this.waveIndex;
         if (nextIdx >= this.waves.length) {
             console.log("[Game] VICTORY! ALL WAVES CLEARED.");
@@ -168,6 +225,12 @@ export class Game {
         }
 
         console.log(`[Game] Starting wave ${nextIdx + 1}`);
+
+        // SAVE CHECKPOINT ONLY IF NOT RETRYING
+        if (!this.lastWaveState || this.lastWaveState.waveIndex !== this.waveIndex) {
+            this.saveCheckpoint();
+        }
+
         this.currentWaveConfig = this.waves[this.waveIndex];
 
         // --- MIXED WAVE LOGIC ---
@@ -217,27 +280,67 @@ export class Game {
 
     setupMultiplayer() {
         if (!this.room) return;
-        console.log('[Game] Multiplayer room detected:', this.room.id);
+        console.log('[Game] Multiplayer active. Listening for sector signals...');
 
-        // Hook into RoomService Broadcast channel
-        if (RoomService.currentChannel) {
-            RoomService.currentChannel.on('broadcast', { event: 'game_event' }, (payload) => {
-                const data = payload.payload;
-                console.log('[Game] Received Broadcast Event:', data);
+        window.addEventListener('game-event-received', (e) => {
+            const data = e.detail;
+            const profile = PlayerService.getCurrentProfile();
+            if (data.senderId === profile.id) return; // Skip own events
 
-                if (data.type === 'tower_placed' && data.senderId !== PlayerService.getCurrentProfile().id) {
-                    const towerType = TOWER_TYPES[data.towerData.typeKey];
-                    const remoteTower = new Tower(this, data.towerData.x, data.towerData.y, towerType);
-                    this.towers.push(remoteTower);
-                }
+            console.log('[Game] Syncing remote event:', data.type);
 
-                if (data.type === 'wave_started') {
-                    if (!this.isWaveActive || this.waveIndex <= data.waveIndex) {
-                        if (this.waveIndex < data.waveIndex) this.waveIndex = data.waveIndex - 1;
-                        this.startNextWave();
-                    }
-                }
-            });
+            switch (data.type) {
+                case 'tower_placed':
+                    this.syncRemotePlacement(data.towerData);
+                    break;
+                case 'wave_started':
+                    this.syncRemoteWave(data.waveIndex);
+                    break;
+                case 'tower_upgraded':
+                    this.syncRemoteUpgrade(data.upgradeData);
+                    break;
+                case 'tower_sold':
+                    this.syncRemoteSell(data.sellData);
+                    break;
+            }
+        });
+    }
+
+    syncRemotePlacement(towerData) {
+        const type = TOWER_TYPES[towerData.typeKey];
+        if (!type) return;
+        const remoteTower = new Tower(this, towerData.x, towerData.y, type);
+        remoteTower.remoteId = towerData.remoteId; // For future sync
+        this.towers.push(remoteTower);
+        console.log('[Game] Remote tower deployed.');
+    }
+
+    syncRemoteWave(waveIndex) {
+        if (!this.isWaveActive || this.waveIndex < waveIndex) {
+            if (this.waveIndex < waveIndex - 1) this.waveIndex = waveIndex - 1;
+            this.startNextWave();
+        }
+    }
+
+    syncRemoteUpgrade(data) {
+        const tower = this.towers.find(t =>
+            Math.abs(t.x - data.x) < 5 && Math.abs(t.y - data.y) < 5
+        );
+        if (tower) {
+            tower.level = data.newLevel;
+            tower.pathA = data.pathA;
+            tower.pathB = data.pathB;
+            console.log('[Game] Remote tower upgraded.');
+        }
+    }
+
+    syncRemoteSell(data) {
+        const towerIdx = this.towers.findIndex(t =>
+            Math.abs(t.x - data.x) < 5 && Math.abs(t.y - data.y) < 5
+        );
+        if (towerIdx !== -1) {
+            this.towers.splice(towerIdx, 1);
+            console.log('[Game] Remote tower decommissioned.');
         }
     }
 
@@ -322,6 +425,38 @@ export class Game {
             };
         }
 
+        // Overclock Button
+        const btnOverclock = document.getElementById('btn-overclock');
+        if (btnOverclock) {
+            btnOverclock.onclick = () => {
+                if (this.selectedTower) {
+                    const success = this.selectedTower.overclock();
+                    if (success) {
+                        this.updateInspectPanel(this.selectedTower);
+                    }
+                }
+            };
+        }
+
+        // Sacrifice Button
+        const btnSacrifice = document.getElementById('btn-sacrifice');
+        if (btnSacrifice) {
+            btnSacrifice.onclick = () => {
+                if (this.selectedTower) {
+                    const success = this.selectedTower.sacrifice();
+                    if (success) {
+                        // Remove tower from game
+                        const idx = this.towers.indexOf(this.selectedTower);
+                        if (idx > -1) {
+                            this.towers.splice(idx, 1);
+                            ChallengeManager.onTowerLost();
+                        }
+                        this.deselectTower();
+                    }
+                }
+            };
+        }
+
         // Generate tower slot buttons in build menu
         this.generateTowerSlots();
 
@@ -335,6 +470,7 @@ export class Game {
                 // --- MULTIPLAYER BROADCAST ---
                 if (this.room) {
                     RoomService.broadcastEvent('wave_started', {
+                        senderId: PlayerService.getCurrentProfile().id,
                         waveIndex: this.waveIndex
                     });
                 }
@@ -353,6 +489,14 @@ export class Game {
                 // Hide button after use to prevent accidental double-clicks, 
                 // the update loop will show it again when conditions are met for the newly started wave
                 btnSkipWave.classList.add('hidden');
+
+                // --- MULTIPLAYER BROADCAST ---
+                if (this.room) {
+                    RoomService.broadcastEvent('wave_started', {
+                        senderId: PlayerService.getCurrentProfile().id,
+                        waveIndex: this.waveIndex
+                    });
+                }
             };
         }
     }
@@ -474,6 +618,17 @@ export class Game {
         });
 
         this.canvas.addEventListener('click', () => {
+            // 0. Manual Aim Mode?
+            if (this.isAiming && this.selectedTower && this.selectedTower.type.id === 'commander') {
+                const fired = this.selectedTower.manualFire(this.mouse.x, this.mouse.y);
+                if (fired) {
+                    this.isAiming = false;
+                    document.body.style.cursor = 'default';
+                    this.updateInspectPanel(this.selectedTower); // Update CD UI
+                }
+                return;
+            }
+
             // 1. Are we placing a new tower?
             if (this.selectedTowerType) {
                 this.placeTower();
@@ -496,6 +651,56 @@ export class Game {
 
         this.setupInspectListeners();
         this.setupPauseListeners();
+
+        if (this.tabMissionEl) this.tabMissionEl.textContent = this.levelId.toUpperCase();
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                this.showTabOverlay();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                this.hideTabOverlay();
+            }
+        });
+    }
+
+    showTabOverlay() {
+        if (!this.tabOverlay) return;
+        this.tabOverlay.classList.remove('hidden');
+        this.updateTabStats();
+    }
+
+    hideTabOverlay() {
+        if (!this.tabOverlay) return;
+        this.tabOverlay.classList.add('hidden');
+    }
+
+    /**
+     * Toggles aim mode for the currently selected manual tower
+     */
+    toggleAimMode() {
+        if (!this.selectedTower || this.selectedTower.type.type !== 'manual') return;
+
+        this.isAiming = !this.isAiming;
+        if (this.isAiming) {
+            document.body.style.cursor = 'crosshair';
+            console.log('[Game] Entered AIM MODE');
+        } else {
+            document.body.style.cursor = 'default';
+            console.log('[Game] Exited AIM MODE');
+        }
+    }
+
+    updateTabStats() {
+        if (this.tabDamageEl) this.tabDamageEl.textContent = Math.floor(this.sessionDamage).toLocaleString();
+        if (this.tabKillsEl) this.tabKillsEl.textContent = this.sessionKills.toLocaleString();
+        // Use this.lives since it's the current HP
+        if (this.tabHpEl) this.tabHpEl.textContent = `${Math.ceil(this.lives)}/${this.maxLives}`;
     }
 
     updateResourceDisplay() {
@@ -613,6 +818,9 @@ export class Game {
         this.credits -= cost;
         this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
 
+        // Track for challenges
+        ChallengeManager.onTowerPlaced(this.selectedTowerType);
+
         // --- MULTIPLAYER BROADCAST ---
         if (this.room) {
             RoomService.broadcastEvent('tower_placed', {
@@ -640,15 +848,35 @@ export class Game {
         Loop.handleBaseHit(this, enemy);
     }
 
-    victory() {
+    async victory() {
         this.isRunning = false;
 
         // Calculate rewards
         const levelData = levels.find(l => l.id === this.levelId) || { multiplier: 1.0 };
-        const rewards = ProgressionManager.calculateMatchRewards('win', this.waveIndex, levelData.multiplier);
+        let rewards = ProgressionManager.calculateMatchRewards('win', this.waveIndex, levelData.multiplier);
 
-        // Award rewards to player
-        this.awardRewards(rewards);
+        // Evaluate challenges for bonus multipliers
+        const challengeResult = ChallengeManager.evaluate(this);
+        if (challengeResult.completed.length > 0) {
+            rewards.xp = Math.floor(rewards.xp * challengeResult.totalXpMult);
+            rewards.tokens = Math.floor(rewards.tokens * challengeResult.totalTokenMult);
+            console.log(`[Game] Challenges completed: ${challengeResult.completed.map(c => c.name).join(', ')}`);
+        }
+
+        // Award rewards to player (Server-Side)
+        await this.awardRewards('win', this.waveIndex);
+
+        // Save Results & Update Leaderboard
+        await HistoryManager.saveMatch({
+            result: 'win',
+            wavesCleared: this.waveIndex,
+            durationSeconds: Math.floor((Date.now() - this.startTime) / 1000),
+            damageDealt: Math.floor(this.sessionDamage),
+            kills: Math.floor(this.sessionKills),
+            xpGained: rewards.xp,
+            tokensGained: rewards.tokens,
+            levelId: this.levelId
+        });
 
         const screen = document.getElementById('end-screen');
         const card = document.querySelector('.end-card');
@@ -668,31 +896,29 @@ export class Game {
         screen.classList.remove('hidden');
     }
 
-    exitToMenu() {
-        this.stop(); // Stops loop and hides HUD/Pause via hideUI()
 
-        // Ensure End Screen is gone
-        document.getElementById('end-screen').classList.add('hidden');
 
-        // Show Main Menu
-        const mainMenu = document.getElementById('main-menu');
-        if (mainMenu) mainMenu.classList.add('active');
-
-        // Restart Menu Background if needed
-        if (window.menuBackground && typeof window.menuBackground.start === 'function') {
-            window.menuBackground.start();
-        }
-    }
-
-    gameOver() {
+    async gameOver() {
         this.isRunning = false; // Stop game loop
 
         // Calculate rewards (partial for loss)
         const levelData = levels.find(l => l.id === this.levelId) || { multiplier: 1.0 };
         const rewards = ProgressionManager.calculateMatchRewards('loss', this.waveIndex, levelData.multiplier);
 
-        // Award rewards
-        this.awardRewards(rewards);
+        // Award rewards (Server-Side)
+        await this.awardRewards('loss', this.waveIndex);
+
+        // Save Results & Update Leaderboard
+        await HistoryManager.saveMatch({
+            result: 'loss',
+            wavesCleared: this.waveIndex,
+            durationSeconds: Math.floor((Date.now() - this.startTime) / 1000),
+            damageDealt: Math.floor(this.sessionDamage),
+            kills: Math.floor(this.sessionKills),
+            xpGained: rewards.xp,
+            tokensGained: rewards.tokens,
+            levelId: this.levelId
+        });
 
         const screen = document.getElementById('end-screen');
         const card = document.querySelector('.end-card');
@@ -711,8 +937,94 @@ export class Game {
         // 2. Set Style (Red)
         card.className = 'end-card defeat';
 
+        // 3. Show Retry Button if checkpoint exists
+        const retryBtn = document.getElementById('btn-retry-wave');
+        if (retryBtn) {
+            if (this.lastWaveState) retryBtn.classList.remove('hidden');
+            else retryBtn.classList.add('hidden');
+        }
+
         // 3. Show Screen
         screen.classList.remove('hidden');
+    }
+
+    /**
+     * Save current game state before a wave starts
+     */
+    saveCheckpoint() {
+        this.lastWaveState = {
+            credits: this.credits,
+            lives: this.lives,
+            towers: this.towers.map(t => ({
+                x: t.x, y: t.y, typeId: t.type.id,
+                level: t.level, pathA: t.pathA, pathB: t.pathB,
+                rotation: t.rotation
+            })),
+            waveIndex: this.waveIndex,
+            sessionDamage: this.sessionDamage,
+            sessionKills: this.sessionKills
+        };
+        console.log('[Game] Checkpoint Saved.');
+    }
+
+    /**
+     * Restore game to the start of the current (failed) wave
+     */
+    retryWave() {
+        if (!this.lastWaveState) {
+            console.error('[Game] No checkpoint found!');
+            return;
+        }
+
+        const state = this.lastWaveState;
+
+        // Restore Stats
+        this.credits = state.credits;
+        this.lives = state.lives;
+        this.waveIndex = state.waveIndex;
+        this.sessionDamage = state.sessionDamage;
+        this.sessionKills = state.sessionKills;
+
+        // Restore Towers
+        this.towers = [];
+        this.deselectTower();
+
+        state.towers.forEach(tData => {
+            const type = TOWER_TYPES[tData.typeId.toUpperCase()];
+            if (type) {
+                const tower = new Tower(this, tData.x, tData.y, type);
+                tower.level = tData.level;
+                tower.pathA = tData.pathA;
+                tower.pathB = tData.pathB;
+                tower.rotation = tData.rotation;
+                this.towers.push(tower);
+            }
+        });
+
+        // Clear Enemies/Projectiles
+        this.enemies = [];
+        this.projectiles = [];
+        this.spawnQueue = [];
+        this.isWaveActive = false;
+        if (this.nextWaveTimerId) clearTimeout(this.nextWaveTimerId);
+
+        // Hide End Screen
+        document.getElementById('end-screen').classList.add('hidden');
+        this.isRunning = true;
+
+        // Restart game loop
+        this.loop();
+
+        // Update UI
+        this.updateResourceDisplay();
+        document.getElementById('res-wave').innerText = this.waveIndex;
+
+        // Show Start Button for the retry
+        const startBtn = document.getElementById('btn-start-wave');
+        startBtn.classList.remove('hidden');
+        startBtn.innerText = `RETRY WAVE ${this.waveIndex + 1}`;
+
+        console.log('[Game] State Restored from Checkpoint.');
     }
 
     handleUpgrade(path) {
@@ -754,6 +1066,20 @@ export class Game {
         // Execute Upgrade
         tower.upgrade(path);
 
+        // --- MULTIPLAYER BROADCAST ---
+        if (this.room) {
+            RoomService.broadcastEvent('tower_upgraded', {
+                senderId: PlayerService.getCurrentProfile().id,
+                upgradeData: {
+                    x: tower.x,
+                    y: tower.y,
+                    newLevel: tower.level,
+                    pathA: tower.pathA,
+                    pathB: tower.pathB
+                }
+            });
+        }
+
         // Refresh Inspector
         this.updateInspectMenu();
     }
@@ -780,6 +1106,13 @@ export class Game {
         // 3. Remove from Array
         const index = this.towers.indexOf(tower);
         if (index > -1) {
+            // --- MULTIPLAYER BROADCAST ---
+            if (this.room) {
+                RoomService.broadcastEvent('tower_sold', {
+                    senderId: PlayerService.getCurrentProfile().id,
+                    sellData: { x: tower.x, y: tower.y }
+                });
+            }
             this.towers.splice(index, 1);
         }
 
@@ -900,7 +1233,27 @@ export class Game {
         }
 
         // 3. Target Button
-        document.getElementById('btn-target').innerText = `TARGET: ${t.targetMode}`;
+        const targetBtn = document.getElementById('btn-target');
+        if (t.type.type === 'manual') {
+            targetBtn.innerText = this.isAiming ? "CANCEL AIM" : "LAUNCH AIRSTRIKE";
+            targetBtn.classList.add('overclock'); // Reuse cool style
+            targetBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.toggleAimMode();
+                this.updateInspectPanel(t); // update text
+            };
+        } else {
+            targetBtn.innerText = `TARGET: ${t.targetMode}`;
+            targetBtn.classList.remove('overclock');
+            targetBtn.onclick = (e) => {
+                // Revert to standard behavior if listener was overwritten
+                if (this.selectedTower) {
+                    const newMode = this.selectedTower.cycleTargetMode();
+                    targetBtn.innerText = `TARGET: ${newMode}`;
+                }
+            };
+        }
+
     }
 
     setupInspectListeners() {
@@ -959,6 +1312,35 @@ export class Game {
             };
         }
 
+        // --- OVERCLOCK BUTTON ---
+        const btnOverclock = document.getElementById('btn-overclock');
+        if (btnOverclock) {
+            btnOverclock.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (this.selectedTower) {
+                    const success = this.selectedTower.overclock();
+                    if (success) {
+                        btnOverclock.innerText = 'OVERCLOCKING...';
+                        btnOverclock.disabled = true;
+                    }
+                }
+            };
+        }
+
+        // --- SACRIFICE BUTTON ---
+        const btnSacrifice = document.getElementById('btn-sacrifice');
+        if (btnSacrifice) {
+            btnSacrifice.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (this.selectedTower) {
+                    const success = this.selectedTower.sacrifice();
+                    if (success) {
+                        this.deselectTower();
+                    }
+                }
+            };
+        }
+
         // --- CLOSE BUTTON ---
         const btnClose = document.getElementById('btn-deselect') || document.getElementById('btn-close');
         if (btnClose) {
@@ -985,6 +1367,14 @@ export class Game {
         document.getElementById('btn-resume').onclick = () => {
             this.togglePause();
         };
+
+        // 3. Retry Button (End Screen)
+        const retryBtn = document.getElementById('btn-retry-wave');
+        if (retryBtn) {
+            retryBtn.onclick = () => {
+                this.retryWave();
+            };
+        }
 
         // 3. Exit Button
         document.getElementById('btn-exit').onclick = () => {
@@ -1050,12 +1440,28 @@ export class Game {
         }
     }
 
-    exitToMenu() {
+    async exitToMenu() {
         this.stop(); // Stops game and hides UI
         this.stopTrollMessages(); // Ensure interval is cleared
 
         // Reset Audio to Game/Menu Theme
         if (window.audioManager) window.audioManager.playTrack('game');
+
+        // Save current progress before exiting
+        if (this.waveIndex > 0 || this.sessionDamage > 0) {
+            console.log('[Game] Saving mid-game quit record...');
+            await HistoryManager.saveMatch({
+                result: 'quit',
+                wavesCleared: this.waveIndex,
+                durationSeconds: Math.floor((Date.now() - this.startTime) / 1000),
+                damageDealt: Math.floor(this.sessionDamage),
+                kills: Math.floor(this.sessionKills),
+                xpGained: 0,
+                tokensGained: 0,
+                levelId: this.levelId
+            });
+            console.log('[Game] Quit record saved.');
+        }
 
         // 1. Force hide boot screen to prevent ghosting glitch
         const bootScreen = document.getElementById('boot-screen');
@@ -1080,6 +1486,16 @@ export class Game {
         setTimeout(() => {
             if (mainMenu) mainMenu.classList.add('active'); // SHOW MENU
 
+            // Refresh Profile to update UI stats
+            PlayerService.loadProfile();
+
+            // Show Player Stats Widget again (if logged in)
+            const statsWidget = document.getElementById('player-stats-widget');
+            const profile = PlayerService.getCurrentProfile();
+            if (statsWidget && profile && !profile.is_anonymous) {
+                statsWidget.classList.remove('player-stats-hidden');
+            }
+
             // 3. FULL DATA RESET
             this.enemies = []; this.towers = []; this.projectiles = [];
             this.credits = 600; this.lives = 20; this.waveIndex = 0;
@@ -1102,35 +1518,48 @@ export class Game {
     // --- REWARD SYSTEM ---
 
     /**
-     * Award XP and tokens to the player profile
+     * Award XP and tokens to the player profile via Secure RPC
      */
-    async awardRewards(rewards) {
+    async awardRewards(result, wavesCleared) {
         const profile = PlayerService.getCurrentProfile();
+        const supabase = PlayerService.getClient();
 
         if (profile && !profile.is_anonymous) {
-            console.log(`[Rewards] Awarding: +${rewards.xp} XP, +${rewards.tokens} Tokens`);
+            console.log(`[Security] Requesting secure reward validation for ${result}...`);
 
-            // Calculate new values
-            const newXP = (profile.xp || 0) + rewards.xp;
-            const newTokens = (profile.neon_tokens || 0) + rewards.tokens;
+            try {
+                const { data, error } = await supabase.rpc('award_match_rewards', {
+                    p_result: result,
+                    p_waves_cleared: wavesCleared,
+                    p_level_id: this.levelId
+                });
 
-            // Check for level up
-            const levelUp = ProgressionManager.checkLevelUp(newXP, profile.level || 1);
+                if (error) throw error;
 
-            // Update profile
-            const updates = {
-                xp: levelUp ? levelUp.xp : newXP,
-                neon_tokens: newTokens
-            };
+                console.log('[Rewards] Secure award confirmed:', data);
 
-            if (levelUp) {
-                updates.level = levelUp.level;
-                console.log(`[Rewards] Level up! New level: ${levelUp.level}`);
+                // Update local profile state to match server (via event)
+                await PlayerService.loadProfile();
+
+                // For UI display, we still use the client-side calculated reward object
+                const levelData = levels.find(l => l.id === this.levelId) || { multiplier: 1.0 };
+                const rewards = ProgressionManager.calculateMatchRewards(result, wavesCleared, levelData.multiplier);
+                this.displayRewards(rewards);
+
+            } catch (err) {
+                console.error('[Security] Reward validation failed:', err.message);
+                notifier.show({
+                    title: 'UPLINK ERROR',
+                    message: 'Could not sync rewards with orbital command.',
+                    type: 'WARNING'
+                });
             }
-
-            await PlayerService.updateProfile(updates);
         } else {
             console.log('[Rewards] Guest mode - rewards not saved to profile');
+            // Still show visual feedback
+            const levelData = levels.find(l => l.id === this.levelId) || { multiplier: 1.0 };
+            const rewards = ProgressionManager.calculateMatchRewards(result, wavesCleared, levelData.multiplier);
+            this.displayRewards(rewards);
         }
     }
 

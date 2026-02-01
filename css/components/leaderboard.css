@@ -1,0 +1,217 @@
+/* css/components/leaderboard.css */
+
+.leaderboard-window {
+    width: 600px;
+    height: 700px;
+    background: rgba(8, 10, 15, 0.98);
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 50px rgba(0, 243, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    /* Cyberpunk corners */
+    clip-path: polygon(20px 0, 100% 0,
+            100% calc(100% - 20px), calc(100% - 20px) 100%,
+            0 100%, 0 20px);
+    overflow: hidden;
+}
+
+.lb-tabs {
+    display: flex;
+    border-bottom: 1px solid #333;
+}
+
+.lb-tab {
+    flex: 1;
+    padding: 20px;
+    background: transparent;
+    border: none;
+    color: #666;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.lb-tab:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lb-tab.active {
+    color: var(--neon-blue);
+    background: rgba(0, 243, 255, 0.1);
+    box-shadow: inset 0 -2px 0 var(--neon-blue);
+}
+
+.lb-header {
+    display: flex;
+    padding: 15px 25px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #888;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.lb-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.lb-row {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: 0.2s;
+}
+
+.lb-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lb-rank {
+    width: 60px;
+    font-family: 'Orbitron', sans-serif;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.lb-name {
+    flex: 1;
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.lb-score {
+    width: 120px;
+    text-align: right;
+    color: var(--neon-blue);
+    font-family: 'Consolas', monospace;
+    font-size: 1.1rem;
+}
+
+/* Rank Colors */
+.lb-row.rank-1 .lb-rank {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.lb-row.rank-2 .lb-rank {
+    color: #c0c0c0;
+}
+
+.lb-row.rank-3 .lb-rank {
+    color: #cd7f32;
+}
+
+/* My Footer Stats */
+.lb-footer {
+    border-top: 1px solid #333;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lb-footer-label {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.lb-footer-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.lb-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.lb-stat span:first-child {
+    font-size: 0.7rem;
+    color: #666;
+}
+
+.lb-stat span:last-child {
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+}
+
+.lb-loading,
+.lb-error,
+.lb-empty {
+    text-align: center;
+    padding: 50px;
+    color: #666;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* History Extensions */
+.history-row {
+    border-left: 3px solid #666;
+}
+
+.history-row.win {
+    border-left-color: #00ff88;
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.history-row.loss {
+    border-left-color: #ff4444;
+    background: rgba(255, 68, 68, 0.05);
+}
+
+.history-row.quit {
+    border-left-color: #ffaa00;
+    background: rgba(255, 170, 0, 0.05);
+}
+
+.result-tag {
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.win .result-tag {
+    color: #00ff88;
+}
+
+.loss .result-tag {
+    color: #ff4444;
+}
+
+.quit .result-tag {
+    color: #ffaa00;
+}
+
+.history-stats {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.stat-xp {
+    color: #ffcc00;
+}
+
+.stat-tokens {
+    color: var(--neon-blue);
+}
+
+.stat-dmg {
+    color: #ff00ff;
+}
+
+.stat-kills {
+    color: #ffffff;
+}

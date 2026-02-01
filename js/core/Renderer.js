@@ -4,10 +4,12 @@ import { drawMachineTower } from '../render/towers/MachineTower.js';
 import { drawRailTower } from '../render/towers/RailTower.js';
 import { drawEcoTower } from '../render/towers/EcoTower.js';
 import { drawSpawnerTower } from '../render/towers/SpawnerTower.js';
+import { drawFlakTower } from '../render/towers/FlakTower.js';
 import { drawEnemies } from '../render/enemies/EnemyRenderer.js';
 import { drawTroops } from '../render/TroopRenderer.js';
 import { drawProjectiles } from '../render/ProjectileRenderer.js';
-import { drawRange, drawLevelIndicators, drawPreview } from '../render/UIOverlayRenderer.js';
+import { drawRange, drawLevelIndicators, drawPreview, drawOverclockUI } from '../render/UIOverlayRenderer.js';
+import { MapModifier } from '../managers/MapModifier.js';
 
 export class Renderer {
     constructor(game) {
@@ -24,6 +26,9 @@ export class Renderer {
         // 2. Map Elements
         drawGrid(this.ctx, this.game);
         drawPath(this.ctx, this.game);
+
+        // 2.5 Dynamic Map Zones
+        MapModifier.draw(this.ctx);
 
         // 3. Dynamic Elements
         this.drawTowers();
@@ -45,6 +50,8 @@ export class Renderer {
             if (tower.level > 1) {
                 drawLevelIndicators(this.ctx, tower);
             }
+            // Add Overclock/Disable visuals
+            drawOverclockUI(this.ctx, tower);
         });
     }
 
@@ -67,6 +74,20 @@ export class Renderer {
                 break;
             case 'spawner':
                 drawSpawnerTower(this.ctx, tower);
+                break;
+            case 'flak':
+                drawFlakTower(this.ctx, tower);
+                break;
+            case 'commander':
+                // Simple placeholder for now, red dish
+                this.ctx.fillStyle = '#444';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#ff3333';
+                this.ctx.beginPath();
+                this.ctx.arc(0, -5, 8, 0, Math.PI * 2);
+                this.ctx.fill();
                 break;
             default:
                 this.ctx.fillStyle = tower.type.color || '#fff';

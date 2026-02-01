@@ -1,4 +1,6 @@
 import { Troop } from './Troop.js';
+import { SynergyManager } from '../managers/SynergyManager.js';
+import { notifier } from '../managers/NotificationManager.js';
 
 export class Tower {
     constructor(game, x, y, type) {
@@ -42,11 +44,45 @@ export class Tower {
 
         // Buff System (for Eco Tower B)
         this.buffs = { speed: 1, damage: 1, range: 1 };
+
+        // Overclock System
+        this.isOverclocked = false;
+        this.overclockEndTime = 0;
+        this.isDisabled = false;
+        this.disabledEndTime = 0;
+        this.markedForDeletion = false; // For sacrifice
+
+        // Target filtering (Air/Ground)
+        this.targetsAir = type.targets?.includes('air') ?? true;
+        this.targetsGround = type.targets?.includes('ground') ?? true;
     }
 
     update() {
         // Reset Buffs every frame (they get reapplied by Eco towers)
         this.buffs = { speed: 1, damage: 1, range: 1 };
+
+        // Check overclock/disable timers
+        const now = Date.now();
+        if (this.isOverclocked && now > this.overclockEndTime) {
+            this.isOverclocked = false;
+            this.isDisabled = true;
+            this.disabledEndTime = now + 10000; // 10 second cooldown
+            notifier.notify(`${this.type.name} OFFLINE (OVERHEATED)`, 'danger');
+            console.log(`[Tower] ${this.type.name} overclock ended, now disabled`);
+        }
+        if (this.isDisabled && now > this.disabledEndTime) {
+            this.isDisabled = false;
+            notifier.notify(`${this.type.name} REBOOTED`, 'success');
+            console.log(`[Tower] ${this.type.name} re-enabled`);
+        }
+
+        // Skip all logic if disabled
+        if (this.isDisabled) return;
+
+        // MANUAL TOWERS (COMMANDER) do not auto-shoot
+        if (this.type.id === 'commander') {
+            return;
+        }
 
         if (this.type.id === 'spawner') {
             this.updateBarracks();
@@ -105,6 +141,10 @@ export class Tower {
         const actualRange = this.range * this.buffs.range;
 
         for (const enemy of enemies) {
+            // Target Filtering: Skip if tower cannot hit this type
+            if (enemy.isAir && !this.targetsAir) continue;
+            if (!enemy.isAir && !this.targetsGround) continue;
+
             if (this.distanceTo(enemy) <= actualRange) {
                 let val;
                 switch (this.targetMode) {
@@ -132,7 +172,7 @@ export class Tower {
 
         // --- LASER ---
         if (this.type.id === 'laser') {
-            this.target.hp -= actualDamage;
+            this.target.takeDamage(actualDamage);
             if (this.pathA >= 2) this.target.applyBurn(this.pathA === 4 ? 3 : 1);
             if (this.pathB >= 2) this.target.applySlow(0.3);
 
@@ -169,14 +209,28 @@ export class Tower {
             if (this.pathA >= 3 && Math.random() < 0.25) finalDamage *= 2; // Crit
             if (this.pathA >= 5 && this.target.hp > this.target.maxHp * 0.5) finalDamage *= 1.5; // Execute bonus
 
+            // SYNERGY BONUS: Check for burn/slow combos
+            const synergy = SynergyManager.calculateBonus('rail', this.target, finalDamage);
+            finalDamage = synergy.damage;
+
             // Instant hit visual (Railgun is near instant)
             this.createBeam(this.target, '#00ccff', 4); // Thick beam
-            this.target.hp -= finalDamage;
+            this.target.takeDamage(finalDamage);
 
             // Path B: Chain Lightning
             if (this.pathB >= 3) {
                 const chainCount = (this.pathB >= 5) ? 10 : 3;
                 this.fireChain(this.target, chainCount, finalDamage * 0.6);
+            }
+            return;
+        }
+
+        // --- FLAK CANNON (Anti-Air) ---
+        if (this.type.id === 'flak') {
+            this.createProjectile(this.target, 20, actualDamage, '#ffaa00');
+            // NOTE: Flak could have splash damage too if we want to be fancy
+            if (this.pathB >= 2) {
+                // Fragment/Splash effect logic would go here
             }
             return;
         }
@@ -193,7 +247,7 @@ export class Tower {
                 const dy = this.target.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < this.speed) {
-                    this.target.hp -= this.damage;
+                    this.target.takeDamage(this.damage);
                     this.markedForDeletion = true;
                 } else {
                     this.x += (dx / dist) * this.speed;
@@ -226,7 +280,7 @@ export class Tower {
                 const dy = this.target.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < this.speed) {
-                    this.target.hp -= this.damage;
+                    this.target.takeDamage(this.damage);
                     // Visual explosion (handled in renderer ideally, but logic here)
                     this.markedForDeletion = true;
                 } else {
@@ -247,7 +301,7 @@ export class Tower {
                 Math.sqrt(Math.pow(e.x - current.x, 2) + Math.pow(e.y - current.y, 2)) < 150
             );
             if (next) {
-                next.hp -= dmg;
+                next.takeDamage(dmg);
                 // Chain Visual
                 this.game.projectiles.push({
                     isBeam: true, from: { x: current.x, y: current.y }, to: { x: next.x, y: next.y },
@@ -407,5 +461,104 @@ export class Tower {
         const nextIndex = (currentIndex + 1) % this.targetModes.length;
         this.targetMode = this.targetModes[nextIndex];
         return this.targetMode;
+    }
+
+    /**
+     * Overclock: +100% fire rate for 5 seconds, then disabled for 10 seconds
+     */
+    overclock() {
+        if (this.isOverclocked || this.isDisabled) {
+            console.log('[Tower] Cannot overclock - already active or disabled');
+            return false;
+        }
+
+        this.isOverclocked = true;
+        this.overclockEndTime = Date.now() + 5000; // 5 second boost
+        this.buffs.speed = 2; // Double fire rate
+        notifier.notify(`${this.type.name} OVERCLOCKED!`, 'warning');
+        console.log(`[Tower] ${this.type.name} OVERCLOCKED!`);
+        return true;
+    }
+
+    /**
+     * Sacrifice: Deal massive damage to all enemies in range, then destroy tower
+     */
+    sacrifice() {
+        if (this.isDisabled) return false;
+
+        const sacrificeDamage = this.damage * 10; // 10x damage
+        const actualRange = this.range * this.buffs.range;
+
+        // Damage all enemies in range
+        let hits = 0;
+        for (const enemy of this.game.enemies) {
+            if (this.distanceTo(enemy) <= actualRange) {
+                enemy.takeDamage(sacrificeDamage);
+                hits++;
+            }
+        }
+
+        console.log(`[Tower] ${this.type.name} SACRIFICED! Hit ${hits} enemies for ${sacrificeDamage} each`);
+
+        // Mark for deletion
+        this.markedForDeletion = true;
+        return true;
+    }
+
+    /**
+     * Manual Fire for Skill-Based Towers (COMMANDER)
+     * @param {number} x - Target X coordinate
+     * @param {number} y - Target Y coordinate
+     */
+    manualFire(x, y) {
+        if (this.isDisabled || Date.now() - this.lastShot < this.cooldown) {
+            console.log("Commander tower on cooldown or disabled");
+            return false;
+        }
+
+        console.log(`[Tower] COMMANDER Firing at ${x}, ${y}`);
+        this.lastShot = Date.now();
+
+        // Visual: Beam from sky
+        this.game.projectiles.push({
+            isBeam: true,
+            from: { x: x, y: y - 500 }, // From sky
+            to: { x: x, y: y },
+            color: '#ff3333', width: 6, duration: 500,
+            startTime: Date.now(), markedForDeletion: false,
+            update: function () {
+                if (Date.now() - this.startTime > this.duration) this.markedForDeletion = true;
+            }
+        });
+
+        // Effect: Explosion
+        const radius = (this.pathB >= 2) ? 120 : 60; // Larger AOE with upgrades
+        let hitCount = 0;
+
+        this.game.enemies.forEach(enemy => {
+            const dx = enemy.x - x;
+            const dy = enemy.y - y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist <= radius) {
+                let damage = this.damage * this.buffs.damage;
+
+                // Path A Bonuses
+                if (this.pathA >= 2) damage *= 1.5;
+                if (this.pathA >= 4) damage *= 2.0;
+
+                enemy.takeDamage(damage);
+                hitCount++;
+
+                // Path B Effects
+                if (this.pathB >= 3) enemy.applyBurn(3); // Napalm
+                if (this.pathB >= 4) enemy.applySlow(0.8, 2000); // Suppression (Stun-like slow)
+
+                // Nuke (Level 5)
+                if (this.pathB >= 5 && enemy.hp < enemy.maxHp) enemy.takeDamage(1000);
+            }
+        });
+
+        return true;
     }
 }

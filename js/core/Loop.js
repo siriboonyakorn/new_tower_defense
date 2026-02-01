@@ -1,5 +1,7 @@
 import { Enemy } from '../entities/Enemy.js';
 import { ENEMIES } from '../data/enemies.js';
+import { EventManager } from '../managers/EventManager.js';
+import { MapModifier } from '../managers/MapModifier.js';
 
 /**
  * Handles the logic for waves, spawning, and UI visibility for the skip button.
@@ -31,6 +33,16 @@ export function updateWaveLogic(game) {
 
     // 3. Skip Button Visibility Logic
     updateSkipButtonState(game);
+
+    // 4. Mid-Wave Events (EMP, Shields, etc.)
+    const eventResult = EventManager.update(game);
+    if (eventResult) {
+        game.notifier.notify(eventResult.message, eventResult.type || 'warning');
+    }
+    EventManager.cleanup(game);
+
+    // 5. Dynamic Map Zones
+    MapModifier.update(game);
 
     game.waveTimer++;
 }
@@ -152,3 +164,5 @@ export function gameOver(game) {
         game.gameOver();
     }
 }
+
+

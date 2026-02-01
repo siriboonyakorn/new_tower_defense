@@ -48,5 +48,67 @@ export const ENEMIES = {
         reward: 2000,
         color: '#ffffff', // White
         radius: 30
+    },
+    // ADAPTATION ENEMIES
+    'SHIELDED': {
+        name: 'Shielded Drone',
+        hp: 20,
+        speed: 2,
+        reward: 35,
+        color: '#00ffcc', // Teal
+        radius: 10,
+        laserResist: 0.5 // Takes 50% less laser damage
+    },
+    'TELEPORTER': {
+        name: 'Teleporter',
+        hp: 8,
+        speed: 4, // Very fast
+        reward: 40,
+        color: '#ff00ff', // Magenta
+        radius: 8,
+        slowImmune: true // Cannot be slowed
+    },
+    'SPLITTER': {
+        name: 'Splitter',
+        hp: 15,
+        speed: 1.5,
+        reward: 20,
+        color: '#ffaa00', // Orange
+        radius: 12,
+        splitOnDeath: 2 // Spawns 2 mini enemies on death
+    },
+    'DRONE': {
+        name: 'Drone',
+        hp: 8,
+        speed: 2.5,
+        reward: 20,
+        color: '#88ff88',
+        radius: 8
+    },
+    'RUNNER': {
+        name: 'Runner',
+        hp: 6,
+        speed: 4,
+        reward: 25,
+        color: '#ff8888',
+        radius: 7
+    },
+    'AIR_SCOUT': {
+        name: 'Air Scout',
+        hp: 10,
+        speed: 3.5,
+        reward: 35,
+        color: '#00ffff',
+        radius: 8,
+        isAir: true
+    },
+    'AIR_HEAVY': {
+        name: 'Air Tanker',
+        hp: 60,
+        speed: 1.2,
+        reward: 80,
+        color: '#55aaff',
+        radius: 12,
+        isAir: true
     }
 };

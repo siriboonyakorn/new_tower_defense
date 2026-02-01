@@ -1,0 +1,90 @@
+/* css/components/tab_overlay.css */
+
+#tab-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+    /* Don't block clicking while holding tab */
+}
+
+.tab-window {
+    width: 500px;
+    background: rgba(8, 10, 15, 0.95);
+    border: 1px solid var(--neon-blue);
+    padding: 20px;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+    /* Sci-fi clipping */
+    clip-path: polygon(15px 0, 100% 0,
+            100% calc(100% - 15px), calc(100% - 15px) 100%,
+            0 100%, 0 15px);
+}
+
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-blue);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+}
+
+.stat-item .label {
+    font-size: 0.7rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.stat-item .value {
+    font-family: 'Orbitron', sans-serif;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.tab-players {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+}
+
+.tab-player-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.tab-player-row .name {
+    color: white;
+}
+
+.tab-player-row .score {
+    color: var(--neon-blue);
+    font-family: monospace;
+}

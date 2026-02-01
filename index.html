@@ -10,11 +10,40 @@
     <link rel="stylesheet" href="css/main.css?v=20260108-4">
     <link rel="stylesheet" href="css/components/auth.css">
     <link rel="stylesheet" href="css/components/lobby.css">
+    <link rel="stylesheet" href="css/components/leaderboard.css">
+    <link rel="stylesheet" href="css/components/tab_overlay.css">
     <!-- Socket.io for Multiplayer -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/components/notifications.css">
 </head>
 
 <body>
+
+    <div id="tab-overlay" class="hidden">
+        <div class="tab-window">
+            <div class="tab-header">
+                <span>OPERATIONAL_STATUS</span>
+                <span id="tab-mission-name">SECTOR_ALPHA</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="label">DAMAGE</span>
+                    <span id="tab-damage" class="value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">KILLS</span>
+                    <span id="tab-kills" class="value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">BASE HP</span>
+                    <span id="tab-hp" class="value">100/100</span>
+                </div>
+            </div>
+            <div id="tab-players-list" class="tab-players">
+                <!-- Multiplayers show here -->
+            </div>
+        </div>
+    </div>
 
     <div id="transition-layer">
         <div class="shutter-top">
@@ -52,7 +81,6 @@
                 <h1 class="game-title">SECTOR <span class="highlight">ZERO</span></h1>
 
                 <div class="menu-list">
-                    <!-- Left Side -->
                     <button id="btn-shop" class="menu-item">
                         <span class="icon">▤</span> SHOP
                     </button>
@@ -61,13 +89,17 @@
                         <span class="icon">🎒</span> INVENTORY
                     </button>
 
-                    <button id="btn-surge" class="menu-item locked">
-                        <span class="icon">✖</span> SURGE
+                    <button id="btn-leaderboard" class="menu-item">
+                        <span class="icon">🏆</span> RANKINGS
                     </button>
 
                     <!-- Center (Play) -->
                     <button id="btn-start" class="menu-item">
                         START OPERATION
+                    </button>
+
+                    <button id="btn-surge" class="menu-item locked">
+                        <span class="icon">✖</span> SURGE
                     </button>
 
                     <button id="btn-logs" class="menu-item">
@@ -321,6 +353,8 @@
                 </div>
 
                 <div class="inspect-actions">
+                    <button id="btn-overclock" class="hud-btn overclock">⚡ OVERCLOCK</button>
+                    <button id="btn-sacrifice" class="hud-btn sacrifice">💀 SACRIFICE</button>
                     <button id="btn-target" class="hud-btn target">TARGET: FIRST</button>
                     <button id="btn-sell" class="hud-btn sell">SELL</button>
                 </div>
@@ -580,6 +614,41 @@
         </div>
     </div>
 
+    <!-- LEADERBOARD MODAL -> MATCH HISTORY -->
+    <div id="leaderboard-modal" class="sub-menu hidden">
+        <div class="leaderboard-window history-window">
+            <div class="window-header">
+                <span>COMBAT_RECORDS</span>
+                <button id="close-leaderboard" class="close-btn">CLOSE [ESC]</button>
+            </div>
+
+            <div class="lb-tabs">
+                <button id="tab-history" class="lb-tab active">MISSION_HISTORY</button>
+                <button id="tab-global" class="lb-tab">GLOBAL_RANKINGS</button>
+            </div>
+
+            <div id="history-header" class="lb-header history-header">
+                <span style="width: 100px;">DATE</span>
+                <span style="width: 80px;">MISSION</span>
+                <span style="width: 60px;">RESULT</span>
+                <span style="flex:1; text-align:center;">STATS (XP/$/DMG/K)</span>
+            </div>
+
+            <div id="global-header" class="lb-header hidden">
+                <span style="width: 60px;">RANK</span>
+                <span style="flex:1;">OPERATOR</span>
+                <span style="width: 120px; text-align:right;">RATING</span>
+            </div>
+
+            <div id="history-list" class="lb-content history-content">
+                <div id="history-loading" class="lb-loading">Syncing Records...</div>
+            </div>
+
+            <div id="global-list" class="lb-content hidden">
+            </div>
+        </div>
+    </div>
+
     </div>
     <div id="end-screen" class="hidden">
         <div class="end-card">
@@ -588,6 +657,7 @@
                 <p id="end-reason">BASE DESTROYED</p>
                 <p>WAVES CLEARED: <span id="end-waves">0</span></p>
             </div>
+            <button id="btn-retry-wave" class="menu-btn retry-btn hidden">CHRONO RETRY (RESET WAVE)</button>
             <button id="btn-return-menu" class="menu-btn exit-btn">RETURN TO MENU</button>
         </div>
     </div>

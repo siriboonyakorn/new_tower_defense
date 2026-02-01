@@ -150,17 +150,14 @@ export const LobbyUI = {
 
     updatePlayerStats() {
         const profile = PlayerService.getCurrentProfile();
-
         if (!this.elements.statsWidget) return;
 
+        // Ensure we always update values if profile exists
         if (profile && !profile.is_anonymous) {
-            this.elements.statsWidget.classList.remove('player-stats-hidden');
-
             // Update Text
             this.elements.playerLevel.textContent = (profile.level || 1).toString().padStart(2, '0');
             this.elements.playerTokens.textContent = (profile.neon_tokens || 0).toLocaleString();
 
-            // Calcluate XP Bar
             const xp = profile.xp || 0;
             const level = profile.level || 1;
             const requiredAndProgress = ProgressionManager.getLevelProgress(xp, level);
@@ -169,6 +166,12 @@ export const LobbyUI = {
             this.elements.playerXpFill.style.width = `${requiredAndProgress}%`;
             this.elements.playerXpText.textContent = `${xp} / ${required} XP`;
 
+            // Control visibility based on menu state
+            const mainMenu = document.getElementById('main-menu');
+            const isMenuVisible = mainMenu && mainMenu.classList.contains('active');
+            if (isMenuVisible) {
+                this.elements.statsWidget.classList.remove('player-stats-hidden');
+            }
         } else {
             this.elements.statsWidget.classList.add('player-stats-hidden');
         }

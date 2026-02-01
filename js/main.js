@@ -8,7 +8,9 @@ import { AuthUI } from './ui/AuthUI.js';
 import { LobbyUI } from './ui/LobbyUI.js';
 import { StoreUI } from './ui/StoreUI.js';
 import { InventoryUI } from './ui/InventoryUI.js';
+import { HistoryUI } from './ui/HistoryUI.js';
 import { RoomService } from './modules/RoomService.js';
+import { RedisManager } from './managers/RedisManager.js';
 
 window.menuBackground = null;
 
@@ -38,6 +40,7 @@ window.onload = () => {
             window.RoomService = RoomService;
             StoreUI.init();
             InventoryUI.init();
+            HistoryUI.init();
             console.log("[Main] Background services initialized.");
         } catch (e) {
             console.error("[Main] Service init error:", e);

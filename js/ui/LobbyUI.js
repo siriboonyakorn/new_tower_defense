@@ -374,13 +374,15 @@ export const LobbyUI = {
     },
 
     async startGame() {
+        console.log('[LobbyUI] startGame() called');
         try {
             console.log('[LobbyUI] Requesting game start from server...');
             await RoomService.startGame();
+            console.log('[LobbyUI] RoomService.startGame() completed successfully');
             this.setMessage(this.elements.roomMessage, 'Starting game...', 'success');
             // The subscription update will trigger the actual transition for everyone
         } catch (err) {
-            console.error('Start game error:', err);
+            console.error('[LobbyUI] Start game error:', err);
             this.setMessage(this.elements.roomMessage, err.message, 'error');
         }
     },
@@ -403,17 +405,20 @@ export const LobbyUI = {
                 this.updateMembersList();
             },
             onRoomUpdate: (payload) => {
-                console.log('Room updated:', payload);
+                console.log('[LobbyUI] Room updated:', payload);
                 const room = payload.new;
+                console.log('[LobbyUI] Room status:', room.status);
 
                 // GAME START SIGNAL
                 if (room.status === 'in_progress') {
+                    console.log('[LobbyUI] Game status is in_progress! Starting game sequence...');
                     this.setMessage(this.elements.roomMessage, 'DEPLOYING TO SECTOR...', 'success');
 
                     const targetLevelId = room.metadata?.levelId || 'sector1';
                     console.log(`[LobbyUI] Launching Game Map: ${targetLevelId}`);
 
                     setTimeout(() => {
+                        console.log('[LobbyUI] Timeout fired, initializing game...');
                         this.close();
 
                         // Clean up main menu
@@ -427,9 +432,13 @@ export const LobbyUI = {
                         if (window.game && typeof window.game.stop === 'function') {
                             window.game.stop();
                         }
+                        console.log('[LobbyUI] Creating new Game instance...');
                         window.game = new Game('game-canvas', targetLevelId);
+                        console.log('[LobbyUI] Game instance created successfully!');
 
                     }, 1000);
+                } else {
+                    console.log('[LobbyUI] Room status is not in_progress, current status:', room.status);
                 }
             }
         });

@@ -30,9 +30,10 @@ export const ProgressionManager = {
      * Calculate rewards for a match outcome
      * @param {string} result - 'win' or 'loss'
      * @param {number} wavesCleared - Number of waves survived
+     * @param {number} difficultyMultiplier - Map difficulty multiplier (1.0 to 5.0)
      * @returns {Object} { xp, tokens }
      */
-    calculateMatchRewards(result, wavesCleared) {
+    calculateMatchRewards(result, wavesCleared, difficultyMultiplier = 1.0) {
         let xp = 0;
         let tokens = 0;
 
@@ -48,6 +49,10 @@ export const ProgressionManager = {
             xp += 500; // Win bonus
             tokens += 100; // Win bonus
         }
+
+        // Apply difficulty multiplier
+        xp = Math.floor(xp * difficultyMultiplier);
+        tokens = Math.floor(tokens * difficultyMultiplier);
 
         return { xp, tokens };
     },

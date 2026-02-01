@@ -80,6 +80,9 @@
     transition: left 0.5s;
 }
 
+.lobby-mode-btn::before {
+    left: 100%;
+}
 
 /* Map Selection */
 .lobby-map-panel {

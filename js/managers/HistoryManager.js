@@ -16,8 +16,8 @@ export const HistoryManager = {
      */
     async saveMatch(matchData) {
         const profile = PlayerService.getCurrentProfile();
-        if (!profile || profile.is_anonymous) {
-            console.log('[HistoryManager] Guest user, skipping history save.');
+        if (!profile) {
+            console.warn('[HistoryManager] No profile found, skipping history save.');
             return;
         }
 
@@ -29,24 +29,33 @@ export const HistoryManager = {
 
         // 1. Save to Supabase
         const supabase = PlayerService.getClient();
+        const payload = {
+            profile_id: profile.id,
+            result: matchData.result,
+            waves_cleared: Math.floor(matchData.wavesCleared || 0),
+            duration_seconds: Math.floor(matchData.durationSeconds || 0),
+            total_damage: Math.floor(matchData.damageDealt || 0),
+            total_kills: Math.floor(matchData.kills || 0),
+            xp_gained: Math.floor(matchData.xpGained || 0),
+            tokens_gained: Math.floor(matchData.tokensGained || 0),
+            level_id: matchData.levelId,
+            played_at: new Date().toISOString()
+        };
+
+        // Only include signature if it was generated and we want to try saving it
+        // If the DB column is missing, this will fail unless we make it optional here
+        if (signature) payload.signature = signature;
+
         const { error } = await supabase
             .from('match_history')
-            .insert({
-                profile_id: profile.id,
-                result: matchData.result,
-                waves_cleared: Math.floor(matchData.wavesCleared || 0),
-                duration_seconds: Math.floor(matchData.durationSeconds || 0),
-                total_damage: Math.floor(matchData.damageDealt || 0),
-                total_kills: Math.floor(matchData.kills || 0),
-                xp_gained: Math.floor(matchData.xpGained || 0),
-                tokens_gained: Math.floor(matchData.tokensGained || 0),
-                level_id: matchData.levelId,
-                played_at: new Date().toISOString(),
-                signature: signature
-            });
+            .insert(payload);
 
         if (error) {
-            console.error('[HistoryManager] Failed to save match history:', error);
+            console.error('[HistoryManager] Failed to save match history:', error.message, error.details || '', error.hint || '');
+            if (error.message?.includes('signature')) {
+                console.warn('[HistoryManager] SCHEMA MISMATCH: Please run fix_match_history_schema.sql in Supabase SQL Editor.');
+            }
+            console.debug('[HistoryManager] Full Error Object:', JSON.stringify(error));
         } else {
             console.log('[HistoryManager] Match history saved successfully for profile:', profile.id);
         }

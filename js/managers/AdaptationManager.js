@@ -29,6 +29,9 @@ export const AdaptationManager = {
     // Splash damage counter
     splashDamage: 0,
 
+    // Track total damage for saturation calculation
+    totalSessionDamage: 0,
+
     /**
      * Initialize for a new game
      */
@@ -37,9 +40,12 @@ export const AdaptationManager = {
             laser: 0,
             machine: 0,
             rail: 0,
-            eco: 0,
-            spawner: 0
+            flak: 0,
+            commander: 0,
+            spawner: 0,
+            eco: 0
         };
+        this.totalSessionDamage = 0;
         this.triggeredAdaptations = new Set();
         this.slowApplications = 0;
         this.splashDamage = 0;
@@ -53,7 +59,26 @@ export const AdaptationManager = {
     trackDamage(towerTypeId, amount) {
         if (this.damageByType[towerTypeId] !== undefined) {
             this.damageByType[towerTypeId] += amount;
+            this.totalSessionDamage += amount;
         }
+    },
+
+    /**
+     * Get damage multiplier for a tower type based on saturation
+     * If one type does > 40% of total damage, it starts to lose effectiveness
+     */
+    getDamageMultiplier(towerTypeId) {
+        if (this.totalSessionDamage < 2000) return 1.0; // Grace period
+
+        const damageRatio = this.damageByType[towerTypeId] / this.totalSessionDamage;
+
+        if (damageRatio > 0.4) {
+            // Gradually reduce damage from 1.0 down to 0.65 (35% reduction)
+            const penalty = Math.min(0.35, (damageRatio - 0.4) * 2);
+            return 1.0 - penalty;
+        }
+
+        return 1.0;
     },
 
     /**
@@ -68,6 +93,7 @@ export const AdaptationManager = {
      */
     trackSplash(amount) {
         this.splashDamage += amount;
+        this.totalSessionDamage += amount;
     },
 
     /**
@@ -82,45 +108,47 @@ export const AdaptationManager = {
 
         const adapted = [...spawnQueue];
 
-        // Check laser resistance adaptation
-        if (this.damageByType.laser > this.thresholds.LASER_RESIST &&
+        // 1. Laser Resistance (Energy Shields)
+        const laserRatio = this.totalSessionDamage > 0 ? this.damageByType.laser / this.totalSessionDamage : 0;
+        if ((this.damageByType.laser > this.thresholds.LASER_RESIST || laserRatio > 0.5) &&
             !this.triggeredAdaptations.has('LASER_RESIST')) {
+
             console.log('[Adaptation] Laser resistance triggered!');
             if (window.notifier) window.notifier.notify('⚠️ ADAPTATION: ENEMIES GAINING ENERGY SHIELDS', 'danger');
             this.triggeredAdaptations.add('LASER_RESIST');
-            // Replace some normal enemies with resistant ones
+        }
+
+        // Apply Shields if triggered
+        if (this.triggeredAdaptations.has('LASER_RESIST')) {
             for (let i = 0; i < adapted.length; i++) {
-                if (adapted[i] === 'DRONE' && Math.random() < 0.3) {
-                    adapted[i] = 'SHIELDED'; // Shielded enemies resist laser
-                }
+                if (Math.random() < 0.2) adapted[i] = 'SHIELDED';
             }
         }
 
-        // Check slow immunity adaptation
+        // 2. Slow/AoE Adaptation (Teleporters/Splitters)
         if (this.slowApplications > this.thresholds.SLOW_IMMUNE &&
             !this.triggeredAdaptations.has('SLOW_IMMUNE')) {
+
             console.log('[Adaptation] Slow immunity triggered!');
-            if (window.notifier) window.notifier.notify('⚠️ ADAPTATION: ENEMIES GAINING SLOW IMMUNITY', 'danger');
+            if (window.notifier) window.notifier.notify('⚠️ ADAPTATION: ENEMIES GAINING EVASIVE MANEUVERS', 'danger');
             this.triggeredAdaptations.add('SLOW_IMMUNE');
-            // Add fast enemies that are harder to slow
+        }
+
+        if (this.triggeredAdaptations.has('SLOW_IMMUNE')) {
             for (let i = 0; i < adapted.length; i++) {
-                if (adapted[i] === 'RUNNER' && Math.random() < 0.4) {
-                    adapted[i] = 'TELEPORTER'; // Fast teleporting enemies
-                }
+                if (Math.random() < 0.15) adapted[i] = 'TELEPORTER';
             }
         }
 
-        // Check AoE split adaptation
-        if (this.splashDamage > this.thresholds.AOE_SPLIT &&
-            !this.triggeredAdaptations.has('AOE_SPLIT')) {
-            console.log('[Adaptation] AOE split triggered!');
-            if (window.notifier) window.notifier.notify('⚠️ ADAPTATION: ENEMIES GAINING SPLITTING CELLS', 'danger');
-            this.triggeredAdaptations.add('AOE_SPLIT');
-            // Add splitter enemies
-            const insertCount = Math.floor(adapted.length * 0.2);
-            for (let i = 0; i < insertCount; i++) {
-                const idx = Math.floor(Math.random() * adapted.length);
-                adapted.splice(idx, 0, 'SPLITTER');
+        // 3. High Damage Volume (Tougher enemies)
+        if (this.totalSessionDamage > 20000 && !this.triggeredAdaptations.has('REINFORCED')) {
+            if (window.notifier) window.notifier.notify('⚠️ ADAPTATION: HEAVY REINFORCEMENTS DETECTED', 'danger');
+            this.triggeredAdaptations.add('REINFORCED');
+        }
+
+        if (this.triggeredAdaptations.has('REINFORCED')) {
+            for (let i = 0; i < adapted.length; i++) {
+                if (adapted[i] === 'DRONE' && Math.random() < 0.3) adapted[i] = 'TANK';
             }
         }
 
@@ -133,6 +161,7 @@ export const AdaptationManager = {
     getStatus() {
         return {
             damageByType: { ...this.damageByType },
+            totalSessionDamage: this.totalSessionDamage,
             slowApplications: this.slowApplications,
             splashDamage: this.splashDamage,
             triggered: Array.from(this.triggeredAdaptations)

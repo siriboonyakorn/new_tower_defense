@@ -200,11 +200,14 @@ CREATE TABLE IF NOT EXISTS public.match_history (
 ALTER TABLE public.match_history ENABLE ROW LEVEL SECURITY;
 
 -- Policies
--- Users can view their own history (or public if you want public profiles)
+-- Users can view their own history
+-- This restriction ensures match history is strictly personal as requested.
 DROP POLICY IF EXISTS "Anyone can view match history" ON public.match_history;
-CREATE POLICY "Anyone can view match history"
+CREATE POLICY "Users can only view their own match history"
   ON public.match_history FOR SELECT
-  USING (true); -- Publicly viewable for now (e.g. inspecting other players)
+  USING (
+    auth.uid() = (SELECT auth_id FROM public.profiles WHERE id = profile_id)
+  );
 
 -- Users can insert their own matches
 DROP POLICY IF EXISTS "Users can insert own matches" ON public.match_history;

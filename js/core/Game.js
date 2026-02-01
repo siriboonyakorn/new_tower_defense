@@ -60,7 +60,8 @@ export class Game {
         this.enemiesRemainingToSpawn = 0;
         this.currentWaveConfig = null;
         this.spawnQueue = [];
-        this.isPaused = false; // Pause Flag// New mixed wave queue
+        this.isPaused = false;
+        this.matchRecorded = false; // Prevents duplicate saves
         this.notifier = notifier;
         window.notifier = notifier; // For global access
 
@@ -233,9 +234,13 @@ export class Game {
 
         this.currentWaveConfig = this.waves[this.waveIndex];
 
-        // --- MIXED WAVE LOGIC ---
+        // --- MIXED WAVE LOGIC & ADAPTATION ---
         // Prepend the new wave's composition to the current queue so they start spawning immediately
-        const nextEnemies = [...this.currentWaveConfig.composition];
+        let nextEnemies = [...this.currentWaveConfig.composition];
+
+        // APPLY ADAPTATION
+        nextEnemies = AdaptationManager.adaptSpawnQueue(nextEnemies, this.waveIndex);
+
         this.spawnQueue.unshift(...nextEnemies);
 
         this.spawnTimer = 0;
@@ -866,6 +871,8 @@ export class Game {
         // Award rewards to player (Server-Side)
         await this.awardRewards('win', this.waveIndex);
 
+        this.matchRecorded = true;
+
         // Save Results & Update Leaderboard
         await HistoryManager.saveMatch({
             result: 'win',
@@ -907,6 +914,8 @@ export class Game {
 
         // Award rewards (Server-Side)
         await this.awardRewards('loss', this.waveIndex);
+
+        this.matchRecorded = true;
 
         // Save Results & Update Leaderboard
         await HistoryManager.saveMatch({
@@ -1447,8 +1456,8 @@ export class Game {
         // Reset Audio to Game/Menu Theme
         if (window.audioManager) window.audioManager.playTrack('game');
 
-        // Save current progress before exiting
-        if (this.waveIndex > 0 || this.sessionDamage > 0) {
+        // Save current progress before exiting (ONLY IF NOT RECORDED)
+        if (!this.matchRecorded && (this.waveIndex > 0 || this.sessionDamage > 0)) {
             console.log('[Game] Saving mid-game quit record...');
             await HistoryManager.saveMatch({
                 result: 'quit',

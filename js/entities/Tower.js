@@ -1,6 +1,7 @@
 import { Troop } from './Troop.js';
 import { SynergyManager } from '../managers/SynergyManager.js';
 import { notifier } from '../managers/NotificationManager.js';
+import { AdaptationManager } from '../managers/AdaptationManager.js';
 
 export class Tower {
     constructor(game, x, y, type) {
@@ -167,8 +168,12 @@ export class Tower {
     shoot() {
         if (!this.target) return;
 
-        // Apply Damage Buffs
-        const actualDamage = this.damage * this.buffs.damage;
+        // Apply Damage Buffs & Adaptation Penalty
+        const adaptationMult = AdaptationManager.getDamageMultiplier(this.type.id);
+        const actualDamage = this.damage * this.buffs.damage * adaptationMult;
+
+        // Track damage in AdaptationManager
+        AdaptationManager.trackDamage(this.type.id, actualDamage);
 
         // --- LASER ---
         if (this.type.id === 'laser') {
@@ -541,13 +546,15 @@ export class Tower {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist <= radius) {
-                let damage = this.damage * this.buffs.damage;
+                const adaptationMult = AdaptationManager.getDamageMultiplier('commander');
+                let damage = this.damage * this.buffs.damage * adaptationMult;
 
                 // Path A Bonuses
                 if (this.pathA >= 2) damage *= 1.5;
                 if (this.pathA >= 4) damage *= 2.0;
 
                 enemy.takeDamage(damage);
+                AdaptationManager.trackDamage('commander', damage);
                 hitCount++;
 
                 // Path B Effects

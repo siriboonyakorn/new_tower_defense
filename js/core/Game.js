@@ -847,7 +847,7 @@ export class Game {
                 towerData: {
                     x: tx,
                     y: ty,
-                    typeKey: this.selectedTowerType.id.toUpperCase()
+                    typeKey: this.selectedTowerType.key || this.selectedTowerType.id
                 }
             });
         }

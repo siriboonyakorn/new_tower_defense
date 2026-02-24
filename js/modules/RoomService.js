@@ -149,7 +149,7 @@ export const RoomService = {
 
         this.socket.on('room_update', updateUI);
         this.socket.on('game_start', signalStart);
-        this.socket.on('game:event', (payload) => {
+        this.socket.on('game_event', (payload) => {
             if (callbacks.onGameEvent) callbacks.onGameEvent(payload);
         });
 

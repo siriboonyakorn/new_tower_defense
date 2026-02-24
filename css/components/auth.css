@@ -307,3 +307,31 @@
     color: black;
     box-shadow: 0 0 10px #ff6600;
 }
+
+/* Toggle link (email <-> username login switch) */
+.auth-toggle-link {
+    background: transparent;
+    border: none;
+    color: #555;
+    font-family: 'Consolas', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: center;
+    transition: color 0.2s;
+    letter-spacing: 1px;
+    width: 100%;
+}
+
+.auth-toggle-link:hover {
+    color: var(--neon-blue);
+}
+
+/* Descriptive helper text in forms */
+.auth-desc {
+    font-family: 'Consolas', monospace;
+    font-size: 0.82rem;
+    color: #777;
+    margin: 0;
+    line-height: 1.4;
+}

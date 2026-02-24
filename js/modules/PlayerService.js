@@ -195,6 +195,27 @@ export const PlayerService = {
     },
 
     /**
+     * Sign Up with Username + Password only (no real email needed)
+     * Internally generates a fake email: username@sectorzero.game
+     */
+    async signUpWithUsername(username, password) {
+        // Sanitize username for use in fake email (lowercase, alphanumeric/underscore only)
+        const safeUser = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const fakeEmail = `${safeUser}@sectorzero.game`;
+        return this.signUpWithEmail(fakeEmail, password, username);
+    },
+
+    /**
+     * Sign In with Username + Password only
+     * Reconstructs the fake email that was used during signUpWithUsername
+     */
+    async signInWithUsername(username, password) {
+        const safeUser = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const fakeEmail = `${safeUser}@sectorzero.game`;
+        return this.signInWithEmail(fakeEmail, password);
+    },
+
+    /**
      * Sign Up with Email and Password
      */
     async signUpWithEmail(email, password, username) {

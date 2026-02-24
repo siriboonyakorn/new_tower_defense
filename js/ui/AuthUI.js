@@ -6,6 +6,7 @@ import { PlayerService } from '../modules/PlayerService.js';
 
 export const AuthUI = {
     elements: {},
+    loginUsernameMode: false,
 
     init() {
         console.log('[AuthUI] Initializing...');
@@ -31,22 +32,35 @@ export const AuthUI = {
             closeBtn: document.getElementById('close-auth'),
             loginForm: document.getElementById('login-form'),
             signupForm: document.getElementById('signup-form'),
+            quickregForm: document.getElementById('quickreg-form'),
             userPanel: document.getElementById('user-panel'),
 
             // tabs
             tabLogin: document.getElementById('tab-login'),
             tabSignup: document.getElementById('tab-signup'),
+            tabQuickreg: document.getElementById('tab-quickreg'),
 
-            // inputs
+            // login inputs
+            loginEmailGroup: document.getElementById('login-email-group'),
+            loginUsernameGroup: document.getElementById('login-username-group'),
             loginEmail: document.getElementById('login-email'),
+            loginUsername: document.getElementById('login-username'),
             loginPass: document.getElementById('login-password'),
+            toggleLoginModeBtn: document.getElementById('btn-toggle-login-mode'),
+
+            // signup inputs
             signupEmail: document.getElementById('signup-email'),
             signupPass: document.getElementById('signup-password'),
             signupUser: document.getElementById('signup-username'),
 
+            // quickreg inputs
+            qrUsername: document.getElementById('qr-username'),
+            qrPassword: document.getElementById('qr-password'),
+
             // msgs
             loginMsg: document.getElementById('login-msg'),
             signupMsg: document.getElementById('signup-msg'),
+            quickregMsg: document.getElementById('quickreg-msg'),
 
             // Edit Name
             nameWrapper: document.querySelector('.user-name-wrapper'),
@@ -85,6 +99,9 @@ export const AuthUI = {
         if (this.elements.tabSignup) {
             this.elements.tabSignup.addEventListener('click', () => this.switchTab('signup'));
         }
+        if (this.elements.tabQuickreg) {
+            this.elements.tabQuickreg.addEventListener('click', () => this.switchTab('quickreg'));
+        }
 
         // Forms
         if (this.elements.loginForm) {
@@ -92,6 +109,14 @@ export const AuthUI = {
         }
         if (this.elements.signupForm) {
             this.elements.signupForm.addEventListener('submit', (e) => this.handleSignup(e));
+        }
+        if (this.elements.quickregForm) {
+            this.elements.quickregForm.addEventListener('submit', (e) => this.handleQuickReg(e));
+        }
+
+        // Login mode toggle (email <-> username)
+        if (this.elements.toggleLoginModeBtn) {
+            this.elements.toggleLoginModeBtn.addEventListener('click', () => this.toggleLoginMode());
         }
 
         // Logout
@@ -115,6 +140,24 @@ export const AuthUI = {
         }
         if (this.elements.cancelBtn) {
             this.elements.cancelBtn.addEventListener('click', () => this.toggleEditMode(false));
+        }
+    },
+
+    toggleLoginMode() {
+        this.loginUsernameMode = !this.loginUsernameMode;
+        const { loginEmailGroup, loginUsernameGroup, loginEmail, loginUsername, toggleLoginModeBtn } = this.elements;
+        if (this.loginUsernameMode) {
+            loginEmailGroup.classList.add('hidden');
+            loginUsernameGroup.classList.remove('hidden');
+            loginEmail.removeAttribute('required');
+            loginUsername.setAttribute('required', 'required');
+            toggleLoginModeBtn.textContent = '📧 Login with email instead';
+        } else {
+            loginEmailGroup.classList.remove('hidden');
+            loginUsernameGroup.classList.add('hidden');
+            loginEmail.setAttribute('required', 'required');
+            loginUsername.removeAttribute('required');
+            toggleLoginModeBtn.textContent = '⚡ Login with username instead';
         }
     },
 
@@ -193,11 +236,13 @@ export const AuthUI = {
         // Hide all forms
         this.elements.loginForm.classList.add('hidden');
         this.elements.signupForm.classList.add('hidden');
+        this.elements.quickregForm.classList.add('hidden');
         this.elements.userPanel.classList.add('hidden');
 
         // Deactivate all tabs
         this.elements.tabLogin.classList.remove('active');
         this.elements.tabSignup.classList.remove('active');
+        this.elements.tabQuickreg.classList.remove('active');
 
         // Activate selected
         if (tab === 'login') {
@@ -205,23 +250,24 @@ export const AuthUI = {
             this.elements.tabLogin.classList.add('active');
             this.elements.loginMsg.textContent = '';
             this.elements.loginMsg.className = 'auth-msg';
-        } else {
+        } else if (tab === 'signup') {
             this.elements.signupForm.classList.remove('hidden');
             this.elements.tabSignup.classList.add('active');
             this.elements.signupMsg.textContent = '';
             this.elements.signupMsg.className = 'auth-msg';
+        } else if (tab === 'quickreg') {
+            this.elements.quickregForm.classList.remove('hidden');
+            this.elements.tabQuickreg.classList.add('active');
+            this.elements.quickregMsg.textContent = '';
+            this.elements.quickregMsg.className = 'auth-msg';
         }
     },
 
     async handleLogin(e) {
         e.preventDefault();
-        const email = this.elements.loginEmail.value;
-        const pass = this.elements.loginPass.value;
         const submitBtn = this.elements.loginForm.querySelector('button[type="submit"]');
 
-        console.log('[AuthUI] Starting login for:', email);
         this.setMessage(this.elements.loginMsg, "AUTHENTICATING...", "");
-
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.dataset.originalText = submitBtn.textContent;
@@ -229,8 +275,17 @@ export const AuthUI = {
         }
 
         try {
-            console.log('[AuthUI] Calling signInWithEmail...');
-            await PlayerService.signInWithEmail(email, pass);
+            if (this.loginUsernameMode) {
+                const username = this.elements.loginUsername.value.trim();
+                const pass = this.elements.loginPass.value;
+                console.log('[AuthUI] Starting username login for:', username);
+                await PlayerService.signInWithUsername(username, pass);
+            } else {
+                const email = this.elements.loginEmail.value;
+                const pass = this.elements.loginPass.value;
+                console.log('[AuthUI] Starting email login for:', email);
+                await PlayerService.signInWithEmail(email, pass);
+            }
             console.log('[AuthUI] Login successful!');
             this.setMessage(this.elements.loginMsg, "ACCESS GRANTED", "success");
             setTimeout(() => {
@@ -244,7 +299,6 @@ export const AuthUI = {
                 msg = "TOO MANY ATTEMPTS. PLEASE WAIT A FEW MINUTES.";
             }
             this.setMessage(this.elements.loginMsg, "ACCESS DENIED: " + msg, "error");
-
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = submitBtn.dataset.originalText;
@@ -298,6 +352,59 @@ export const AuthUI = {
         }
     },
 
+    async handleQuickReg(e) {
+        e.preventDefault();
+        const username = this.elements.qrUsername.value.trim();
+        const password = this.elements.qrPassword.value;
+        const submitBtn = this.elements.quickregForm.querySelector('button[type="submit"]');
+
+        if (!username) {
+            this.setMessage(this.elements.quickregMsg, "ERROR: USERNAME REQUIRED.", "error");
+            return;
+        }
+        if (password.length < 6) {
+            this.setMessage(this.elements.quickregMsg, "ERROR: PASSWORD TOO SHORT (MIN 6 CHARS).", "error");
+            return;
+        }
+
+        this.setMessage(this.elements.quickregMsg, "CREATING IDENTITY...", "");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.dataset.originalText = submitBtn.textContent;
+            submitBtn.textContent = "...";
+        }
+
+        try {
+            const result = await PlayerService.signUpWithUsername(username, password);
+            if (result.profile) {
+                this.setMessage(this.elements.quickregMsg, "IDENTITY CONFIRMED. WELCOME, " + username.toUpperCase() + "!", "success");
+                setTimeout(() => {
+                    this.close();
+                    this.updateAuthButtonState();
+                }, 1200);
+            } else {
+                this.setMessage(this.elements.quickregMsg, "CHECK YOUR EMAIL TO CONFIRM.", "success");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = submitBtn.dataset.originalText;
+                }
+            }
+        } catch (err) {
+            console.error('[AuthUI] Quick signup error:', err);
+            let msg = err.message;
+            if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('User already registered')) {
+                msg = "USERNAME ALREADY TAKEN. CHOOSE ANOTHER.";
+            } else if (msg.includes('rate limit')) {
+                msg = "TOO MANY ATTEMPTS. PLEASE WAIT A FEW MINUTES.";
+            }
+            this.setMessage(this.elements.quickregMsg, "ERROR: " + msg, "error");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = submitBtn.dataset.originalText;
+            }
+        }
+    },
+
     async handleLogout() {
         if (confirm("TERMINATE CONNECTION? ALL UNSAVED PROGRESS WILL BE LOST.")) {
             await PlayerService.logout();
@@ -328,6 +435,7 @@ export const AuthUI = {
         this.elements.tabLogin.parentElement.classList.add('hidden'); // Hide tabs
         this.elements.loginForm.classList.add('hidden');
         this.elements.signupForm.classList.add('hidden');
+        this.elements.quickregForm.classList.add('hidden');
         this.elements.userPanel.classList.remove('hidden');
 
         // Update user info

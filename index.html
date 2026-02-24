@@ -406,13 +406,20 @@
                 <div class="auth-tabs">
                     <button id="tab-login" class="auth-tab-btn active">LOGIN</button>
                     <button id="tab-signup" class="auth-tab-btn">REGISTER</button>
+                    <button id="tab-quickreg" class="auth-tab-btn">QUICK REG</button>
                 </div>
 
                 <!-- LOGIN FORM -->
                 <form id="login-form" class="auth-form">
-                    <div class="form-group">
+                    <!-- Email mode (default) -->
+                    <div id="login-email-group" class="form-group">
                         <label>EMAIL ADDRESS</label>
-                        <input type="email" id="login-email" placeholder="OPERATOR@SECTOR.NET" required>
+                        <input type="email" id="login-email" placeholder="OPERATOR@SECTOR.NET">
+                    </div>
+                    <!-- Username mode (for quick-reg users) -->
+                    <div id="login-username-group" class="form-group hidden">
+                        <label>USERNAME</label>
+                        <input type="text" id="login-username" placeholder="COMMANDER_X">
                     </div>
                     <div class="form-group">
                         <label>PASSWORD</label>
@@ -420,9 +427,11 @@
                     </div>
                     <button type="submit" class="auth-submit-btn">ACCESS SYSTEM</button>
                     <div id="login-msg" class="auth-msg"></div>
+                    <button type="button" id="btn-toggle-login-mode" class="auth-toggle-link">⚡ Login with username
+                        instead</button>
                 </form>
 
-                <!-- SIGNUP FORM -->
+                <!-- SIGNUP FORM (email-based) -->
                 <form id="signup-form" class="auth-form hidden">
                     <div class="form-group">
                         <label>CODENAME (USERNAME)</label>
@@ -438,6 +447,23 @@
                     </div>
                     <button type="submit" class="auth-submit-btn">CREATE IDENTITY</button>
                     <div id="signup-msg" class="auth-msg"></div>
+                </form>
+
+                <!-- QUICK REG FORM (username + password only) -->
+                <form id="quickreg-form" class="auth-form hidden">
+                    <p class="auth-desc">Create an account with just a username and password — no email required.</p>
+                    <div class="form-group">
+                        <label>CODENAME (USERNAME)</label>
+                        <input type="text" id="qr-username" placeholder="COMMANDER_X" maxlength="20" required>
+                    </div>
+                    <div class="form-group">
+                        <label>PASSWORD</label>
+                        <input type="password" id="qr-password" placeholder="********" minlength="6" required>
+                    </div>
+                    <button type="submit" class="auth-submit-btn">CREATE IDENTITY</button>
+                    <div id="quickreg-msg" class="auth-msg"></div>
+                    <p class="auth-desc" style="font-size:0.75rem; color:#555; margin-top:4px;">⚠ You won't be able to
+                        recover this account without an email.</p>
                 </form>
 
                 <!-- LOGGED IN VIEW -->

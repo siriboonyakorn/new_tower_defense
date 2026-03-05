@@ -126,7 +126,7 @@ export const EventManager = {
                         startTime: now,
                         duration: event.duration
                     });
-                    return result;
+                    return { ...result, id: key };
                 }
             }
         }

@@ -92,12 +92,16 @@ export class Game {
 
         // Multiplayer State
         this.room = RoomService.getCurrentRoom();
+        this.isMultiplayerHost = !this.room || this.room.host_profile_id === PlayerService.getCurrentProfile()?.id;
         this.setupMultiplayer();
 
         // Stats Tracking
         this.startTime = Date.now();
         this.sessionDamage = 0;
         this.sessionKills = 0;
+
+        // Co-op partner stats { profileId: { username, damage, kills } }
+        this.partnerStats = {};
 
         // Initialize Challenge Tracking
         ChallengeManager.init();
@@ -169,6 +173,10 @@ export class Game {
         if (this.nextWaveTimerId) {
             clearTimeout(this.nextWaveTimerId);
             this.nextWaveTimerId = null;
+        }
+        if (this.statsInterval) {
+            clearInterval(this.statsInterval);
+            this.statsInterval = null;
         }
         this.hideUI();
     }
@@ -263,7 +271,7 @@ export class Game {
         this.skipUsedThisWave = false; // Reset skip button flag for new wave
 
         // --- NEW: ECONOMY CALCULATION ---
-        let waveReward = this.currentWaveConfig.reward;
+        let waveReward = Math.floor((this.currentWaveConfig.reward) * this.getCreditMultiplier());
         let towerIncome = 0;
         // 1. Loop through all towers
         this.towers.forEach(tower => {
@@ -278,6 +286,7 @@ export class Game {
         }
         // 4. Add everything to your bank
         this.credits += (waveReward + towerIncome);
+        this.broadcastCredits();
         // -----------------------------
         this.updateResourceDisplay();
         this.waveIndex++;
@@ -300,11 +309,12 @@ export class Game {
     setupMultiplayer() {
         if (!this.room) return;
         console.log('[Game] Multiplayer active. Listening for sector signals...');
+        this.statsInterval = null; // Will be set after event listener
 
         window.addEventListener('game-event-received', (e) => {
             const data = e.detail;
             const profile = PlayerService.getCurrentProfile();
-            if (data.senderId === profile.id) return; // Skip own events
+            if (data.senderId === profile?.id) return; // Skip own events
 
             console.log('[Game] Syncing remote event:', data.type);
 
@@ -321,6 +331,106 @@ export class Game {
                 case 'tower_sold':
                     this.syncRemoteSell(data.sellData);
                     break;
+                case 'pause_state':
+                    this.applyRemotePause(data.paused);
+                    break;
+                case 'game_event_triggered':
+                    this.applyRemoteEvent(data.eventId);
+                    break;
+                case 'credits_sync':
+                    this.credits = data.credits;
+                    this.updateResourceDisplay();
+                    break;
+                case 'stats_update':
+                    this.partnerStats[data.senderId] = data.stats;
+                    // Refresh tab overlay if currently open
+                    if (this.tabOverlay && !this.tabOverlay.classList.contains('hidden')) {
+                        this.updateTabStats();
+                    }
+                    break;
+                case 'final_stats': {
+                    const minuteKey = new Date(data.stats.playedAt).toISOString().slice(0, 16);
+                    localStorage.setItem(`coop_partner_${minuteKey}`, JSON.stringify(data.stats));
+                    break;
+                }
+            }
+        });
+
+        // Broadcast own stats to partner every 15 s so the TAB overlay stays fresh
+        this.statsInterval = setInterval(() => this.broadcastStats(), 15000);
+    }
+
+    // ─── CO-OP SCALING HELPERS ──────────────────────────────────────────────
+
+    /** Returns the number of players in the current session (min 1). */
+    getPlayerCount() {
+        return (this.room?.members?.length) || 1;
+    }
+
+    /**
+     * Credits earned per event are divided among players so the pool doesn't
+     * inflate with more people.  Formula gives:
+     *   1 player → 100%,  2 players → 67%,  3 players → 50%
+     */
+    getCreditMultiplier() {
+        const n = this.getPlayerCount();
+        return 1 / (1 + (n - 1) * 0.5);
+    }
+
+    /**
+     * Enemy HP scales up so more firepower is needed.
+     *   1 player → 100%,  2 players → 150%,  3 players → 200%
+     */
+    getEnemyHpScale() {
+        const n = this.getPlayerCount();
+        return 1 + (n - 1) * 0.5;
+    }
+
+    /**
+     * Broadcast the current credit total so all clients stay in sync.
+     * Only sent when credits are earned (kills / wave rewards / sell refunds).
+     */
+    broadcastCredits() {
+        if (!this.room) return;
+        RoomService.broadcastEvent('credits_sync', {
+            senderId: PlayerService.getCurrentProfile()?.id,
+            credits: this.credits
+        });
+    }
+
+    /** Broadcast this player's live stats so the partner's TAB overlay is current. */
+    broadcastStats() {
+        if (!this.room) return;
+        const profile = PlayerService.getCurrentProfile();
+        RoomService.broadcastEvent('stats_update', {
+            senderId: profile?.id,
+            stats: {
+                username: profile?.username || 'OPERATOR',
+                damage: Math.floor(this.sessionDamage),
+                kills: Math.floor(this.sessionKills)
+            }
+        });
+    }
+
+    /**
+     * Broadcast final match stats so the partner can store them in Match History.
+     * Also writes a localStorage marker so this client's history shows the CO-OP badge.
+     */
+    broadcastFinalStats(result) {
+        if (!this.room) return;
+        const profile = PlayerService.getCurrentProfile();
+        const playedAt = new Date().toISOString();
+        const minuteKey = playedAt.slice(0, 16);
+        localStorage.setItem(`coop_self_${minuteKey}`, 'true');
+        RoomService.broadcastEvent('final_stats', {
+            senderId: profile?.id,
+            stats: {
+                username: profile?.username || 'OPERATOR',
+                damage: Math.floor(this.sessionDamage),
+                kills: Math.floor(this.sessionKills),
+                result,
+                levelId: this.levelId,
+                playedAt
             }
         });
     }
@@ -328,10 +438,13 @@ export class Game {
     syncRemotePlacement(towerData) {
         const type = TOWER_TYPES[towerData.typeKey];
         if (!type) return;
-        const remoteTower = new Tower(this, towerData.x, towerData.y, type);
-        remoteTower.remoteId = towerData.remoteId; // For future sync
+        // Convert tile grid coords to pixel coords using THIS client's tileSize
+        const x = towerData.tileCol * this.tileSize + this.tileSize / 2;
+        const y = towerData.tileRow * this.tileSize + this.tileSize / 2;
+        const remoteTower = new Tower(this, x, y, type);
+        remoteTower.remoteId = towerData.remoteId;
         this.towers.push(remoteTower);
-        console.log('[Game] Remote tower deployed.');
+        console.log('[Game] Remote tower deployed at tile', towerData.tileCol, towerData.tileRow);
     }
 
     syncRemoteWave(waveIndex) {
@@ -342,9 +455,7 @@ export class Game {
     }
 
     syncRemoteUpgrade(data) {
-        const tower = this.towers.find(t =>
-            Math.abs(t.x - data.x) < 5 && Math.abs(t.y - data.y) < 5
-        );
+        const tower = this.towers.find(t => t.remoteId === data.remoteId);
         if (tower) {
             tower.level = data.newLevel;
             tower.pathA = data.pathA;
@@ -354,9 +465,7 @@ export class Game {
     }
 
     syncRemoteSell(data) {
-        const towerIdx = this.towers.findIndex(t =>
-            Math.abs(t.x - data.x) < 5 && Math.abs(t.y - data.y) < 5
-        );
+        const towerIdx = this.towers.findIndex(t => t.remoteId === data.remoteId);
         if (towerIdx !== -1) {
             this.towers.splice(towerIdx, 1);
             console.log('[Game] Remote tower decommissioned.');
@@ -691,6 +800,7 @@ export class Game {
     showTabOverlay() {
         if (!this.tabOverlay) return;
         this.tabOverlay.classList.remove('hidden');
+        this.broadcastStats(); // push fresh stats to partner on TAB press
         this.updateTabStats();
     }
 
@@ -720,6 +830,22 @@ export class Game {
         if (this.tabKillsEl) this.tabKillsEl.textContent = this.sessionKills.toLocaleString();
         // Use this.lives since it's the current HP
         if (this.tabHpEl) this.tabHpEl.textContent = `${Math.ceil(this.lives)}/${this.maxLives}`;
+
+        // Co-op player breakdown in tab overlay
+        const playersList = document.getElementById('tab-players-list');
+        if (!playersList || !this.room) return;
+        const profile = PlayerService.getCurrentProfile();
+        const myRow = `<div class="tab-player-row self">
+            <span class="name">&#9658; ${profile?.username || 'YOU'}</span>
+            <span class="score">DMG&nbsp;${Math.floor(this.sessionDamage).toLocaleString()}&nbsp;&nbsp;K&nbsp;${this.sessionKills}</span>
+        </div>`;
+        const partnerRows = Object.values(this.partnerStats).map(p => `
+            <div class="tab-player-row partner">
+                <span class="name">${p.username || 'PARTNER'}</span>
+                <span class="score">DMG&nbsp;${(p.damage || 0).toLocaleString()}&nbsp;&nbsp;K&nbsp;${p.kills || 0}</span>
+            </div>
+        `).join('');
+        playersList.innerHTML = myRow + partnerRows;
     }
 
     updateResourceDisplay() {
@@ -833,6 +959,9 @@ export class Game {
         );
 
         this.towers.push(newTower);
+        // Assign unique remote ID for cross-client tracking
+        const remoteId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        newTower.remoteId = remoteId;
         // Deduct credits
         this.credits -= cost;
         this.updateResourceDisplay(); // FIX: Removed 'this.ui.'
@@ -845,8 +974,10 @@ export class Game {
             RoomService.broadcastEvent('tower_placed', {
                 senderId: PlayerService.getCurrentProfile().id,
                 towerData: {
-                    x: tx,
-                    y: ty,
+                    // Send tile grid indices so both screens resolve the same position
+                    tileCol: Math.floor(tx / this.tileSize),
+                    tileRow: Math.floor(ty / this.tileSize),
+                    remoteId,
                     typeKey: this.selectedTowerType.key || this.selectedTowerType.id.toLowerCase()
                 }
             });
@@ -889,6 +1020,7 @@ export class Game {
         await this.awardRewards('win', this.waveIndex);
 
         this.matchRecorded = true;
+        this.broadcastFinalStats('win');
 
         // Save Results & Update Leaderboard
         await HistoryManager.saveMatch({
@@ -939,6 +1071,7 @@ export class Game {
         }
 
         this.matchRecorded = true;
+        this.broadcastFinalStats('loss');
 
         // Save Results & Update Leaderboard
         await HistoryManager.saveMatch({
@@ -1103,8 +1236,7 @@ export class Game {
             RoomService.broadcastEvent('tower_upgraded', {
                 senderId: PlayerService.getCurrentProfile().id,
                 upgradeData: {
-                    x: tower.x,
-                    y: tower.y,
+                    remoteId: tower.remoteId,
                     newLevel: tower.level,
                     pathA: tower.pathA,
                     pathB: tower.pathB
@@ -1133,6 +1265,7 @@ export class Game {
 
         // 2. Add Credits
         this.credits += refund;
+        this.broadcastCredits();
         this.updateResourceDisplay();
 
         // 3. Remove from Array
@@ -1142,7 +1275,7 @@ export class Game {
             if (this.room) {
                 RoomService.broadcastEvent('tower_sold', {
                     senderId: PlayerService.getCurrentProfile().id,
-                    sellData: { x: tower.x, y: tower.y }
+                    sellData: { remoteId: tower.remoteId }
                 });
             }
             this.towers.splice(index, 1);
@@ -1414,7 +1547,7 @@ export class Game {
         };
     }
 
-    togglePause() {
+    togglePause(isRemote = false) {
         this.isPaused = !this.isPaused;
         const menu = document.getElementById('pause-menu');
         const container = document.getElementById('game-container');
@@ -1430,6 +1563,38 @@ export class Game {
             if (window.audioManager) window.audioManager.playTrack('game');
             this.stopTrollMessages();
         }
+
+        // Sync pause state to partner (only for local actions)
+        if (!isRemote && this.room) {
+            RoomService.broadcastEvent('pause_state', {
+                senderId: PlayerService.getCurrentProfile()?.id,
+                paused: this.isPaused
+            });
+        }
+    }
+
+    applyRemotePause(paused) {
+        if (paused !== this.isPaused) {
+            this.togglePause(true); // true = remote, skip re-broadcast
+        }
+    }
+
+    applyRemoteEvent(eventId) {
+        const event = EventManager.events[eventId];
+        if (!event) return;
+        const result = event.apply(this);
+        if (result) {
+            this.notifier.notify(result.message, result.type || 'warning');
+        }
+        console.log('[Game] Remote event applied:', eventId);
+    }
+
+    broadcastGameEvent(eventResult) {
+        if (!this.room || !this.isMultiplayerHost) return;
+        RoomService.broadcastEvent('game_event_triggered', {
+            senderId: PlayerService.getCurrentProfile()?.id,
+            eventId: eventResult.id
+        });
     }
 
     startTrollMessages() {

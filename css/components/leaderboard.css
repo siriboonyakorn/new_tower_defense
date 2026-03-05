@@ -215,3 +215,74 @@
 .stat-kills {
     color: #ffffff;
 }
+
+/* ── CO-OP HISTORY EXTENSIONS ─────────────────────────────────────────── */
+
+/* Make rows support a partner line below the main stats */
+.lb-row {
+    flex-wrap: wrap;
+}
+
+/* Highlight co-op rows with a subtle teal left border */
+.lb-row.coop-row {
+    border-left: 3px solid var(--neon-blue);
+    background: rgba(0, 243, 255, 0.04);
+}
+
+/* Inline CO-OP badge next to mission name */
+.lb-coop-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    background: rgba(0, 243, 255, 0.15);
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-size: 0.65rem;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    vertical-align: middle;
+}
+
+/* Partner row — full width so it wraps below the main stats line */
+.lb-coop-partner {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    padding: 5px 0 0 4px;
+    border-top: 1px dashed rgba(0, 243, 255, 0.15);
+    font-size: 0.8rem;
+}
+
+.lb-coop-partner .partner-icon {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.lb-coop-partner .partner-name {
+    color: #aaa;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    flex: 1;
+}
+
+.lb-coop-partner .partner-stats {
+    color: var(--neon-blue);
+    font-family: 'Consolas', monospace;
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+/* History stat span helpers used in renderHistoryList */
+.lb-date  { width: 90px; font-size: 0.8rem; color: #888; flex-shrink: 0; }
+.lb-mission { flex: 1; color: white; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; }
+.lb-result  { width: 55px; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: bold; }
+.lb-result.win  { color: #00ff88; }
+.lb-result.loss { color: #ff4444; }
+.lb-stats-summary { display: flex; gap: 8px; font-size: 0.75rem; flex-wrap: wrap; justify-content: flex-end; }
+.hl-xp    { color: #ffcc00; }
+.hl-token { color: var(--neon-blue); }
+.hl-dmg   { color: #ff00ff; }
+.hl-kills { color: #ffffff; }

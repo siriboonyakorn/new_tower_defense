@@ -88,3 +88,25 @@
     color: var(--neon-blue);
     font-family: monospace;
 }
+
+/* Self (local player) row */
+.tab-player-row.self {
+    background: rgba(0, 243, 255, 0.08);
+    border-left: 2px solid var(--neon-blue);
+}
+.tab-player-row.self .name {
+    color: var(--neon-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+}
+
+/* Partner row */
+.tab-player-row.partner {
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid #888;
+}
+.tab-player-row.partner .name {
+    color: #ccc;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+}

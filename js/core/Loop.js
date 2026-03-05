@@ -35,9 +35,13 @@ export function updateWaveLogic(game) {
     updateSkipButtonState(game);
 
     // 4. Mid-Wave Events (EMP, Shields, etc.)
-    const eventResult = EventManager.update(game);
+    // In multiplayer, only the host rolls for events to keep both clients in sync
+    const isMultiplayerClient = game.room && !game.isMultiplayerHost;
+    const eventResult = isMultiplayerClient ? null : EventManager.update(game);
     if (eventResult) {
         game.notifier.notify(eventResult.message, eventResult.type || 'warning');
+        // Broadcast the event to partner so they experience the same effect
+        if (game.broadcastGameEvent) game.broadcastGameEvent(eventResult);
     }
     EventManager.cleanup(game);
 
@@ -91,7 +95,9 @@ export function updateEntities(game) {
     // 4. Enemies
     game.enemies = game.enemies.filter(enemy => {
         if (enemy.hp <= 0) {
-            game.credits += enemy.reward || enemy.type.reward;
+            const killReward = Math.floor((enemy.reward || enemy.type.reward) * game.getCreditMultiplier());
+            game.credits += killReward;
+            game.broadcastCredits();
             handleEnemyDeathEffects(game, enemy);
             game.updateResourceDisplay();
             return false;
@@ -125,6 +131,13 @@ export function spawnEnemy(game) {
     );
 
     game.enemies.push(enemy);
+
+    // Scale HP for co-op balance: more players = tougher enemies
+    const hpScale = game.getEnemyHpScale();
+    if (hpScale !== 1) {
+        enemy.hp = Math.ceil(enemy.hp * hpScale);
+        enemy.maxHp = enemy.hp;
+    }
 }
 
 export function handleEnemyDeathEffects(game, enemy) {

@@ -151,17 +151,31 @@ export const LeaderboardUI = {
             const resultClass = entry.result === 'win' ? 'win' : 'loss';
             const resultText = entry.result.toUpperCase();
 
+            // --- CO-OP partner data from localStorage ---
+            const minuteKey = new Date(entry.played_at).toISOString().slice(0, 16);
+            const isCoop = localStorage.getItem(`coop_self_${minuteKey}`) === 'true';
+            const partnerRaw = localStorage.getItem(`coop_partner_${minuteKey}`);
+            const partnerData = partnerRaw ? JSON.parse(partnerRaw) : null;
+
+            const coopBadge = isCoop ? '<span class="lb-coop-badge">CO-OP</span>' : '';
+            const partnerRow = partnerData ? `
+                <div class="lb-coop-partner">
+                    <span class="partner-icon">&#x1F91D;</span>
+                    <span class="partner-name">${partnerData.username || 'PARTNER'}</span>
+                    <span class="partner-stats">DMG&nbsp;${(partnerData.damage || 0).toLocaleString()}&nbsp;&nbsp;K&nbsp;${partnerData.kills || 0}</span>
+                </div>` : '';
+
             return `
-                <div class="lb-row">
+                <div class="lb-row${isCoop ? ' coop-row' : ''}">
                     <div class="lb-date">${date}</div>
-                    <div class="lb-mission">${entry.level_id || 'UNKNOWN'}</div>
+                    <div class="lb-mission">${entry.level_id || 'UNKNOWN'}${coopBadge}</div>
                     <div class="lb-result ${resultClass}">${resultText}</div>
                     <div class="lb-stats-summary">
                         <span class="hl-xp">+${entry.xp_gained} XP</span>
                         <span class="hl-token">+${entry.tokens_gained} $</span>
                         <span class="hl-dmg">DMG: ${entry.total_damage}</span>
                         <span class="hl-kills">K: ${entry.total_kills}</span>
-                    </div>
+                    </div>${partnerRow}
                 </div>
             `;
         }).join('');

@@ -117,11 +117,11 @@ export const StoreService = {
             throw new Error("Insufficient Neon Tokens.");
         }
 
-        const unlockedSkins = [...profile.unlocked_skins, skinId];
+        const unlockedSkins = [...(profile.unlocked_skins || []), skinId];
         const newTokens = profile.neon_tokens - cost;
 
         await PlayerService.updateProfile({
-            unlocked_skins: JSON.stringify(unlockedSkins),
+            unlocked_skins: unlockedSkins,
             neon_tokens: newTokens
         });
 
@@ -135,11 +135,11 @@ export const StoreService = {
         const profile = PlayerService.getCurrentProfile();
         if (!profile) throw new Error("Not logged in.");
 
-        const equippedSkins = { ...profile.equipped_skins };
+        const equippedSkins = { ...(profile.equipped_skins || {}) };
         equippedSkins[towerType] = skinId;
 
         await PlayerService.updateProfile({
-            equipped_skins: JSON.stringify(equippedSkins)
+            equipped_skins: equippedSkins
         });
 
         return true;

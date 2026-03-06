@@ -181,7 +181,9 @@ export class Tower {
 
         // --- LASER ---
         if (this.type.id === 'laser') {
-            this.target.takeDamage(actualDamage);
+            // SHIELDED adaptation enemies have laserResist (0–1 = % damage reduction)
+            const laserDmg = actualDamage * (1 - (this.target.type.laserResist || 0));
+            this.target.takeDamage(laserDmg);
             if (this.pathA >= 2) this.target.applyBurn(this.pathA === 4 ? 3 : 1);
             if (this.pathB >= 2) this.target.applySlow(0.3);
 

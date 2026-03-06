@@ -11,6 +11,8 @@ export class Troop {
         this.speed = 4;     // Fast!
         
         // Combat
+        this.hp = 100;      // Health (used by upgrade multipliers)
+        this.maxHp = 100;
         this.damage = 500;  // High damage (Instant kill for weak enemies)
         this.radius = 15;   // Hitbox size
         this.color = '#ff0000'; // Red = Danger
@@ -62,8 +64,8 @@ export class Troop {
     }
 
     explode(enemy) {
-        // 1. Deal massive damage
-        enemy.hp -= this.damage;
+        // 1. Deal damage through standard path so sessionDamage is tracked
+        enemy.takeDamage(this.damage);
 
         // 2. Visual Effect (Screen Shake or Flash)
         // (Optional: Draw an explosion in Renderer later)

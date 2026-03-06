@@ -335,3 +335,176 @@
     margin: 0;
     line-height: 1.4;
 }
+
+/* ============================================================
+   GOOGLE OAUTH BUTTON
+   ============================================================ */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0;
+    color: #444;
+    font-size: 0.75rem;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #333;
+}
+
+.auth-github-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 11px 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.82rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    letter-spacing: 1px;
+    width: 100%;
+}
+
+.auth-github-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #aaa;
+    color: white;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.12);
+}
+
+.github-icon {
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   PASSWORD STRENGTH METER
+   ============================================================ */
+.password-strength-bar {
+    height: 4px;
+    background: #222;
+    margin-top: 6px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background 0.3s ease;
+    border-radius: 2px;
+}
+
+.strength-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    margin-top: 3px;
+    display: block;
+}
+
+/* ============================================================
+   2FA CHALLENGE FORM (shown after login)
+   ============================================================ */
+#mfa-challenge-form input {
+    text-align: center;
+    font-size: 1.6rem;
+    letter-spacing: 0.4em;
+    font-family: 'Consolas', monospace;
+}
+
+/* ============================================================
+   2FA MANAGEMENT (inside user panel)
+   ============================================================ */
+.mfa-section {
+    width: 100%;
+    border-top: 1px solid #222;
+    padding-top: 12px;
+}
+
+.mfa-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.mfa-status-off {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem;
+    color: #555;
+    letter-spacing: 1px;
+}
+
+.mfa-status-on {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem;
+    color: #00ff66;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px #00ff66;
+}
+
+.mfa-toggle-btn {
+    background: transparent;
+    border: 1px solid #555;
+    color: #aaa;
+    padding: 5px 14px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    cursor: pointer;
+    transition: 0.2s;
+    letter-spacing: 1px;
+}
+
+.mfa-toggle-btn.enable:hover {
+    border-color: #00f3ff;
+    color: #00f3ff;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+.mfa-toggle-btn.disable:hover {
+    border-color: #ff3333;
+    color: #ff3333;
+    box-shadow: 0 0 10px rgba(255, 51, 51, 0.2);
+}
+
+.mfa-setup-panel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #222;
+}
+
+.mfa-setup-panel.hidden {
+    display: none;
+}
+
+.mfa-qr-container {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.mfa-qr-container img {
+    width: 160px;
+    height: 160px;
+    display: block;
+}

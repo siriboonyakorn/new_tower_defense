@@ -189,6 +189,8 @@ export const InventoryUI = {
                 else if (this.selectedSkin.id.includes('eco')) type = 'eco';
                 else if (this.selectedSkin.id.includes('rail')) type = 'rail';
                 else if (this.selectedSkin.id.includes('spawner')) type = 'spawner';
+                else if (this.selectedSkin.id.includes('flak')) type = 'flak';
+                else if (this.selectedSkin.id.includes('commander')) type = 'commander';
 
                 SkinPreviewRenderer.draw(
                     this.ctx,

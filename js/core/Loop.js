@@ -93,12 +93,14 @@ export function updateEntities(game) {
     });
 
     // 4. Enemies
+    const enemiesYetToSpawn = [];
     game.enemies = game.enemies.filter(enemy => {
         if (enemy.hp <= 0) {
             const killReward = Math.floor((enemy.reward || enemy.type.reward) * game.getCreditMultiplier());
             game.credits += killReward;
             game.broadcastCredits();
-            handleEnemyDeathEffects(game, enemy);
+            const spawned = handleEnemyDeathEffects(game, enemy);
+            if (spawned) enemiesYetToSpawn.push(...spawned);
             game.updateResourceDisplay();
             return false;
         }
@@ -110,6 +112,8 @@ export function updateEntities(game) {
         }
         return true;
     });
+    // Splice in any split-children AFTER the filter loop to avoid losing them
+    if (enemiesYetToSpawn.length > 0) game.enemies.push(...enemiesYetToSpawn);
 }
 
 export function spawnEnemy(game) {
@@ -141,6 +145,7 @@ export function spawnEnemy(game) {
 }
 
 export function handleEnemyDeathEffects(game, enemy) {
+    // 1. Burn chain explosion (5+ stacks explode nearby enemies)
     if (enemy.effects.burn.stacks >= 5) {
         game.enemies.forEach(other => {
             if (other === enemy) return;
@@ -150,6 +155,22 @@ export function handleEnemyDeathEffects(game, enemy) {
             }
         });
     }
+
+    // 2. SPLITTER: spawn N mini-enemies at the same path position on death
+    if (enemy.type.splitOnDeath && enemy.type.splitOnDeath > 0) {
+        const spawnCount = enemy.type.splitOnDeath;
+        const miniType = ENEMIES['SCOUT']; // Mini-enemy is a weak Scout
+        const spawned = [];
+        for (let i = 0; i < spawnCount; i++) {
+            const mini = new Enemy(game, 'SCOUT', miniType, enemy.x, enemy.y);
+            mini.pathIndex = enemy.pathIndex; // Resume from same path point
+            spawned.push(mini);
+        }
+        console.log(`[Splitter] Spawned ${spawnCount} mini-enemies on death.`);
+        return spawned;
+    }
+
+    return null;
 }
 
 export function handleBaseHit(game, enemy) {

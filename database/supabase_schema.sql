@@ -149,7 +149,7 @@ BEGIN
   );
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Drop existing trigger if it exists
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -163,7 +163,7 @@ CREATE TRIGGER on_auth_user_created
 -- HELPER FUNCTION: Generate unique join code
 -- ==============================================================================
 
-CREATE OR REPLACE FUNCTION generate_join_code()
+CREATE OR REPLACE FUNCTION public.generate_join_code()
 RETURNS TEXT AS $$
 DECLARE
   chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; -- Removed ambiguous chars
@@ -175,7 +175,7 @@ BEGIN
   END LOOP;
   RETURN result;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- ==============================================================================
 -- MATCH HISTORY TABLE
@@ -305,7 +305,7 @@ BEGIN
 
     RETURN v_return;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ==============================================================================
 -- HARDEN RLS: Restrict sensitive columns
@@ -313,13 +313,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Prevent users from directly updating their XP and Tokens
 -- This forces the use of the award_match_rewards RPC for progression.
+-- WITH CHECK ensures the user cannot change their auth_id to impersonate another user.
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = auth_id)
-  WITH CHECK (
-    -- Only allow updating display_name, username, etc.
-    -- To truly block XP updates, we would need a more complex check or separate table.
-    -- For now, we assume the RPC is the primary path used by the UI.
-    true
-  );
+  WITH CHECK (auth.uid() = auth_id);

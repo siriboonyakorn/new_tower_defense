@@ -178,7 +178,7 @@ export const HistoryUI = {
             row.className = 'lb-row';
             row.innerHTML = `
                 <span class="lb-rank" style="width: 60px;">#${item.rank}</span>
-                <span class="lb-user" style="flex:1;">${item.username.split('_')[0].toUpperCase()}</span>
+                <span class="lb-user" style="flex:1;">${(item.username || 'UNKNOWN').split('_')[0].toUpperCase()}</span>
                 <span class="lb-score" style="width: 120px; text-align:right;">${item.score.toLocaleString()}</span>
             `;
             this.elements.globalList.appendChild(row);

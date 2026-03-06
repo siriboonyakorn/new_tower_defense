@@ -457,9 +457,7 @@ export class Game {
     syncRemoteUpgrade(data) {
         const tower = this.towers.find(t => t.remoteId === data.remoteId);
         if (tower) {
-            tower.level = data.newLevel;
-            tower.pathA = data.pathA;
-            tower.pathB = data.pathB;
+            tower.upgrade(data.path);
             console.log('[Game] Remote tower upgraded.');
         }
     }
@@ -978,7 +976,7 @@ export class Game {
                     tileCol: Math.floor(tx / this.tileSize),
                     tileRow: Math.floor(ty / this.tileSize),
                     remoteId,
-                    typeKey: this.selectedTowerType.key || this.selectedTowerType.id.toLowerCase()
+                    typeKey: this.selectedTowerType.id.toUpperCase()
                 }
             });
         }
@@ -1123,7 +1121,10 @@ export class Game {
             towers: this.towers.map(t => ({
                 x: t.x, y: t.y, typeId: t.type.id,
                 level: t.level, pathA: t.pathA, pathB: t.pathB,
-                rotation: t.rotation
+                rotation: t.rotation,
+                // Save computed upgrade stats so they survive the retry restore
+                damage: t.damage, range: t.range, cooldown: t.cooldown,
+                income: t.income, totalInvested: t.totalInvested
             })),
             waveIndex: this.waveIndex,
             sessionDamage: this.sessionDamage,
@@ -1162,6 +1163,12 @@ export class Game {
                 tower.pathA = tData.pathA;
                 tower.pathB = tData.pathB;
                 tower.rotation = tData.rotation;
+                // Restore upgrade-derived stats so the tower performs correctly
+                tower.damage = tData.damage;
+                tower.range = tData.range;
+                tower.cooldown = tData.cooldown;
+                tower.income = tData.income;
+                tower.totalInvested = tData.totalInvested;
                 this.towers.push(tower);
             }
         });
@@ -1237,9 +1244,7 @@ export class Game {
                 senderId: PlayerService.getCurrentProfile().id,
                 upgradeData: {
                     remoteId: tower.remoteId,
-                    newLevel: tower.level,
-                    pathA: tower.pathA,
-                    pathB: tower.pathB
+                    path: path
                 }
             });
         }
@@ -1251,17 +1256,9 @@ export class Game {
     sellTower(tower) {
         if (!tower) return;
 
-        // 1. Calculate Refund (50% of base + upgrades)
-        // Simple formula: base cost + logic for upgrades if tracked
-        // For now, let's refund 50% of base cost + some heuristic for upgrades
-        // Or if we want to be precise, we need to track total investment.
-        // Let's go simple: 50% of current value
-
-        // Approximate total value
-        let totalValue = tower.type.cost;
-        // Add upgrade values if needed, but for now base is fine or strict
-        // Better:
-        const refund = Math.floor(tower.type.cost * 0.5);
+        // 1. Calculate Refund: 70% of everything invested (base + upgrades)
+        // Tower.getSellValue() already handles this correctly using totalInvested
+        const refund = tower.getSellValue();
 
         // 2. Add Credits
         this.credits += refund;
@@ -1279,6 +1276,7 @@ export class Game {
                 });
             }
             this.towers.splice(index, 1);
+            ChallengeManager.onTowerSold();
         }
 
         console.log(`Sold tower for ${refund} credits.`);
@@ -1498,8 +1496,22 @@ export class Game {
             btnSacrifice.onclick = (e) => {
                 if (e) e.stopPropagation();
                 if (this.selectedTower) {
-                    const success = this.selectedTower.sacrifice();
+                    const tower = this.selectedTower;
+                    const success = tower.sacrifice();
                     if (success) {
+                        // Remove tower from game
+                        const idx = this.towers.indexOf(tower);
+                        if (idx > -1) {
+                            // Broadcast removal to co-op partner
+                            if (this.room) {
+                                RoomService.broadcastEvent('tower_sold', {
+                                    senderId: PlayerService.getCurrentProfile()?.id,
+                                    sellData: { remoteId: tower.remoteId }
+                                });
+                            }
+                            this.towers.splice(idx, 1);
+                            ChallengeManager.onTowerLost();
+                        }
                         this.deselectTower();
                     }
                 }
@@ -1695,7 +1707,7 @@ export class Game {
 
             // 3. FULL DATA RESET
             this.enemies = []; this.towers = []; this.projectiles = [];
-            this.credits = 600; this.lives = 20; this.waveIndex = 0;
+            this.credits = 600; this.lives = 100; this.waveIndex = 0;
             this.spawnQueue = []; this.isWaveActive = false;
 
             if (window.menuBackground) window.menuBackground.start();

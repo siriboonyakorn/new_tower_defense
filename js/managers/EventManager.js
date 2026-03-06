@@ -107,7 +107,7 @@ export const EventManager = {
         }
 
         // Only trigger during active waves
-        if (!game.waveInProgress || game.enemies.length === 0) {
+        if (!game.isWaveActive || game.enemies.length === 0) {
             return null;
         }
 

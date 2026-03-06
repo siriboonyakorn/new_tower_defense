@@ -31,7 +31,10 @@ export class Enemy {
 
     takeDamage(amount) {
         if (this.hp <= 0) return;
-        const damageDealt = Math.min(this.hp, amount);
+        let dmg = amount;
+        // EventManager SHIELD_GENERATOR event: shielded enemies take 50% damage
+        if (this.shielded) dmg *= 0.5;
+        const damageDealt = Math.min(this.hp, dmg);
         this.hp -= damageDealt;
         if (this.game) {
             this.game.sessionDamage += damageDealt;
@@ -54,7 +57,8 @@ export class Enemy {
         const dy = ty - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        const currentSpeed = this.speed * (1 - this.effects.slow.intensity);
+        // Apply EventManager SPEED_BOOST multiplier if active
+        const currentSpeed = this.speed * (this.speedBoost || 1) * (1 - this.effects.slow.intensity);
 
         if (dist < currentSpeed) {
             // Snap to grid and move to next waypoint
@@ -110,6 +114,8 @@ export class Enemy {
     }
 
     applySlow(intensity, duration = 1000) {
+        // TELEPORTER enemies are immune to slow
+        if (this.type.slowImmune) return;
         this.effects.slow.intensity = Math.max(this.effects.slow.intensity, intensity);
         this.effects.slow.timer = Date.now() + duration;
     }

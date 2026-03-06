@@ -23,7 +23,7 @@ export const PlayerService = {
                 autoRefreshToken: true,
                 lockType: 'null', // Mandatory for non-secure or buggy environments
                 storageKey: 'sector-zero-session',
-                detectSessionInUrl: false
+                detectSessionInUrl: true  // needed for OAuth and password-recovery redirects
             }
         });
 
@@ -38,6 +38,10 @@ export const PlayerService = {
                 if (oldSessionId !== session.user.id || !this.profile) {
                     await this._loadProfile(session.user.id);
                 }
+            } else if (event === 'PASSWORD_RECOVERY') {
+                // Supabase fires this when user clicks a password-reset email link.
+                // Dispatch so AuthUI can display the set-new-password form.
+                window.dispatchEvent(new CustomEvent('auth-password-recovery'));
             } else if (event === 'SIGNED_OUT') {
                 this.profile = null;
                 this._notifyUpdate();
@@ -161,10 +165,17 @@ export const PlayerService = {
         const supabase = this.getClient();
         const user = this.session?.user;
 
+        // GitHub provides user_name / name; email/password signup provides display_name
+        const oauthUsername = user?.user_metadata?.user_name
+            || user?.user_metadata?.preferred_username
+            || user?.user_metadata?.display_name;
+        const oauthDisplayName = user?.user_metadata?.name
+            || user?.user_metadata?.display_name;
+
         const newProfile = {
             auth_id: authId,
-            username: user?.user_metadata?.display_name || 'Survivor_' + authId.substring(0, 5),
-            display_name: user?.user_metadata?.display_name || 'Survivor',
+            username: oauthUsername || 'Survivor_' + authId.substring(0, 5),
+            display_name: oauthDisplayName || 'Survivor',
             level: 1,
             xp: 0,
             neon_tokens: 500 // Starting bonus
@@ -180,8 +191,10 @@ export const PlayerService = {
             console.log('[PlayerService] Profile created manually:', data.username);
             this.profile = data;
             this._notifyUpdate();
+            return this.profile;
         } else {
             console.error('[PlayerService] Manual profile creation failed:', error);
+            return null;
         }
     },
 
@@ -192,6 +205,121 @@ export const PlayerService = {
         window.dispatchEvent(new CustomEvent('player-profile-updated', {
             detail: { profile: this.profile }
         }));
+    },
+
+    /**
+     * Sign In with GitHub OAuth (redirects to GitHub, then back to the app)
+     */
+    async signInWithGithub() {
+        const supabase = this.getClient();
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'github',
+            options: { redirectTo: window.location.origin }
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * Send a password-reset email to the given address
+     */
+    async sendPasswordResetEmail(email) {
+        const supabase = this.getClient();
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '?type=recovery'
+        });
+        if (error) throw error;
+    },
+
+    /**
+     * Update the currently signed-in user's password (call after recovery redirect)
+     */
+    async updatePassword(newPassword) {
+        const supabase = this.getClient();
+        const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        return data;
+    },
+
+    // ------------------------------------------------------------------
+    // MFA / 2FA  (TOTP)
+    // ------------------------------------------------------------------
+
+    /**
+     * Returns { currentLevel, nextLevel } to detect if MFA step-up is needed
+     */
+    async getMFALevel() {
+        const supabase = this.getClient();
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * Begin TOTP enrollment — returns { id, totp: { qr_code, secret, uri } }
+     */
+    async enrollMFA() {
+        const supabase = this.getClient();
+        const { data, error } = await supabase.auth.mfa.enroll({
+            factorType: 'totp',
+            issuer: 'SectorZero'
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * Complete enrollment by verifying the first TOTP code
+     */
+    async verifyMFAEnrollment(factorId, code) {
+        const supabase = this.getClient();
+        const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId });
+        if (cErr) throw cErr;
+        const { data, error } = await supabase.auth.mfa.verify({
+            factorId,
+            challengeId: challenge.id,
+            code: code.trim()
+        });
+        if (error) throw error;
+        this.session = data.session;
+        return data;
+    },
+
+    /**
+     * Issue a challenge then verify a login-time TOTP code
+     */
+    async challengeAndVerifyMFA(factorId, code) {
+        const supabase = this.getClient();
+        const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId });
+        if (cErr) throw cErr;
+        const { data, error } = await supabase.auth.mfa.verify({
+            factorId,
+            challengeId: challenge.id,
+            code: code.trim()
+        });
+        if (error) throw error;
+        this.session = data.session;
+        return data;
+    },
+
+    /**
+     * List enrolled TOTP factors — returns { totp: [{ id, friendly_name, ... }] }
+     */
+    async listMFAFactors() {
+        const supabase = this.getClient();
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * Remove (unenroll) a TOTP factor by its id
+     */
+    async unenrollMFA(factorId) {
+        const supabase = this.getClient();
+        const { data, error } = await supabase.auth.mfa.unenroll({ factorId });
+        if (error) throw error;
+        return data;
     },
 
     /**
@@ -256,8 +384,8 @@ export const PlayerService = {
         if (error) throw error;
 
         this.session = data.session;
-        // RELY ON onAuthStateChange to trigger _loadProfile
-        // await this._loadProfile(data.user.id); 
+        // Wait for the profile to actually load before returning
+        await this._loadProfile(data.user.id);
         return { user: data.user, session: data.session, profile: this.profile };
     },
 

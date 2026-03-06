@@ -48,6 +48,8 @@ export const SkinPreviewRenderer = {
             case 'eco': this.drawEco(ctx, skin, time); break;
             case 'rail': this.drawRail(ctx, skin, time); break;
             case 'spawner': this.drawSpawner(ctx, skin, time); break;
+            case 'flak': this.drawFlak(ctx, skin, time); break;
+            case 'commander': this.drawCommander(ctx, skin, time); break;
             default: this.drawGeneric(ctx, skin, time); break;
         }
 
@@ -290,6 +292,82 @@ export const SkinPreviewRenderer = {
 
         ctx.beginPath();
         ctx.arc(dx, dy - 10, 4, 0, Math.PI * 2);
+        ctx.fill();
+    },
+
+    drawFlak(ctx, skin, time) {
+        const c = skin.colors;
+
+        // Wide base platform
+        ctx.fillStyle = c.detail;
+        ctx.fillRect(-25, 10, 50, 12);
+
+        // Turret body
+        ctx.fillStyle = c.base;
+        ctx.beginPath();
+        ctx.ellipse(0, -5, 22, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = c.highlight;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Quad barrels pointing upward with slight sway
+        const sway = Math.sin(time * 2) * 0.15;
+        const barrelPositions = [-12, -4, 4, 12];
+        for (const bx of barrelPositions) {
+            ctx.save();
+            ctx.translate(bx, -10);
+            ctx.rotate(sway);
+            ctx.fillStyle = c.detail;
+            ctx.fillRect(-2, -25, 4, 20);
+            // Muzzle flash
+            ctx.fillStyle = c.glow;
+            ctx.shadowColor = c.glow;
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(0, -25, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    },
+
+    drawCommander(ctx, skin, time) {
+        const c = skin.colors;
+
+        // Hexagonal base
+        ctx.fillStyle = c.base;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI / 3) * i - Math.PI / 6;
+            const x = Math.cos(a) * 22;
+            const y = Math.sin(a) * 22;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = c.highlight;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Pulsing aura ring
+        const pulse = 30 + Math.sin(time * 2) * 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = c.glow;
+        ctx.globalAlpha = 0.4 + Math.sin(time * 3) * 0.2;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Central antenna/spire
+        ctx.fillStyle = c.detail;
+        ctx.fillRect(-3, -30, 6, 25);
+        ctx.fillStyle = c.highlight;
+        ctx.shadowColor = c.glow;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, -32, 4, 0, Math.PI * 2);
         ctx.fill();
     }
 };

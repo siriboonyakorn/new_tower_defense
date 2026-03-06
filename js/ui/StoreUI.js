@@ -102,7 +102,6 @@ export const StoreUI = {
         if (this.elements.modal) {
             this.elements.modal.classList.remove('hidden');
             this.refreshGrid();
-            this.refreshGrid();
             this.startTimer();
             this.startAnimation();
         }
@@ -190,6 +189,7 @@ export const StoreUI = {
         }
 
         const profile = PlayerService.getCurrentProfile();
+        if (!profile) return;
         const equippedId = profile.equipped_skins ? profile.equipped_skins[this.activeTab] : `default_${this.activeTab}`;
 
         skins.forEach(skin => {
@@ -255,6 +255,7 @@ export const StoreUI = {
         // Button State
         const btn = this.elements.actionBtn;
         const profile = PlayerService.getCurrentProfile();
+        if (!profile) return;
         const isOwned = StoreService.isOwned(skin.id);
         const equippedId = profile.equipped_skins ? profile.equipped_skins[this.activeTab] : null;
         const isEquipped = equippedId === skin.id;
